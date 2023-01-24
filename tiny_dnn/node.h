@@ -114,6 +114,11 @@ class edge {
 
   const tensor_t *get_data() const { return &data_; }
 
+  tensor_t weight_update() {
+    auto get_data = data_;
+    return get_data;
+  }
+
   tensor_t *get_gradient() { return &grad_; }
 
   const tensor_t *get_gradient() const { return &grad_; }

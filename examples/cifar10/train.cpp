@@ -9,37 +9,83 @@
 #include <iostream>
 #include <vector>
 
+#include <algorithm>
+#include <random>
+
 #include "tiny_dnn/tiny_dnn.h"
+
+#include "train_images_gtsrb.cpp"
+#include "train_labels_gtsrb.cpp"
 
 template <typename N>
 void construct_net(N &nn, tiny_dnn::core::backend_t backend_type) {
   using conv    = tiny_dnn::convolutional_layer;
-  using pool    = tiny_dnn::max_pooling_layer;
+  // using pool    = tiny_dnn::max_pooling_layer;
+  using max_pool = tiny_dnn::max_pooling_layer;
+  using batch_norm = tiny_dnn::batch_normalization_layer;
+  using dropout = tiny_dnn::dropout_layer;
   using fc      = tiny_dnn::fully_connected_layer;
   using relu    = tiny_dnn::relu_layer;
   using softmax = tiny_dnn::softmax_layer;
 
-  const size_t n_fmaps  = 32;  // number of feature maps for upper layer
-  const size_t n_fmaps2 = 64;  // number of feature maps for lower layer
-  const size_t n_fc     = 64;  // number of hidden units in fc layer
+  // const size_t n_fmaps  = 32;  // number of feature maps for upper layer
+  // const size_t n_fmaps2 = 64;  // number of feature maps for lower layer
+  // const size_t n_fc     = 64;  // number of hidden units in fc layer
 
-  nn << conv(32, 32, 5, 3, n_fmaps, tiny_dnn::padding::same, true, 1, 1, 1, 1,
-             backend_type)                      // C1
-     << pool(32, 32, n_fmaps, 2, false, backend_type)  // P2
-     << relu()                                  // activation
-     << conv(16, 16, 5, n_fmaps, n_fmaps, tiny_dnn::padding::same, true, 1, 1,
-             1, 1,
-             backend_type)                      // C3
-     << pool(16, 16, n_fmaps, 2, false, backend_type)  // P4
-     << relu()                                  // activation
-     << conv(8, 8, 5, n_fmaps, n_fmaps2, tiny_dnn::padding::same, true, 1, 1, 1,
-             1,
-             backend_type)                                // C5
-     << pool(8, 8, n_fmaps2, 2, false, backend_type)             // P6
-     << relu()                                            // activation
-     << fc(4 * 4 * n_fmaps2, n_fc, true, backend_type)    // FC7
-     << relu()                                            // activation
-     << fc(n_fc, 10, true, backend_type) << softmax(10);  // FC10
+  // nn << conv(32, 32, 5, 3, n_fmaps, tiny_dnn::padding::same, true, 1, 1, 1, 1,
+  //            backend_type)                      // C1
+  //    << pool(32, 32, n_fmaps, 2, false, backend_type)  // P2
+  //    << relu()                                  // activation
+  //    << conv(16, 16, 5, n_fmaps, n_fmaps, tiny_dnn::padding::same, true, 1, 1,
+  //            1, 1,
+  //            backend_type)                      // C3
+  //    << pool(16, 16, n_fmaps, 2, false, backend_type)  // P4
+  //    << relu()                                  // activation
+  //    << conv(8, 8, 5, n_fmaps, n_fmaps2, tiny_dnn::padding::same, true, 1, 1, 1,
+  //            1,
+  //            backend_type)                                // C5
+  //    << pool(8, 8, n_fmaps2, 2, false, backend_type)             // P6
+  //    << relu()                                            // activation
+  //    << fc(4 * 4 * n_fmaps2, n_fc, true, backend_type)    // FC7
+  //    << relu()                                            // activation
+  //    << fc(n_fc, 10, true, backend_type) << softmax(10);  // FC10
+
+  const int n_fmaps1 = 32; // number of feature maps for upper layer
+  const int n_fmaps2 = 48; // number of feature maps for lower layer
+  const int n_fc = 512;  //number of hidden units in fully-connected layer
+
+  const int input_w = 45;
+  const int input_h = 45;
+  const int input_c = 1;
+
+  const int num_classes = 43;
+
+  nn << batch_norm(input_w * input_h, input_c)
+      << conv(input_w, input_h, 3, 3, input_c, n_fmaps1, tiny_dnn::padding::same, true, 2, 2, 0, 0)  // 3x3 kernel, 2 stride
+
+      << batch_norm(23 * 23, n_fmaps1)
+      << relu()
+      << conv(23, 23, 3, 3, n_fmaps1, n_fmaps1, tiny_dnn::padding::same)  // 3x3 kernel, 1 stride
+
+      << batch_norm(23 * 23, n_fmaps1)
+      << relu()
+      << max_pool(23, 23, n_fmaps1, 2, 1, false)
+      << conv(22, 22, 3, 3, n_fmaps1, n_fmaps2, tiny_dnn::padding::same, true, 2, 2)  // 3x3 kernel, 2 stride
+
+      << batch_norm(11 * 11, n_fmaps2)
+      << relu()
+      << conv(11, 11, 3, 3, n_fmaps2, n_fmaps2, tiny_dnn::padding::same)  // 3x3 kernel, 1 stride
+
+      << batch_norm(11 * 11, n_fmaps2)
+      << relu()
+      << max_pool(11, 11, n_fmaps2, 2, 1, false)
+      << fc(10 * 10 * n_fmaps2, n_fc)
+
+      << batch_norm(1 * 1, n_fc)
+      << relu()
+      << dropout(n_fc, 0.5)
+      << fc(n_fc, num_classes)
+      << softmax();
 }
 
 void train_cifar10(std::string data_dir_path,
@@ -60,13 +106,38 @@ void train_cifar10(std::string data_dir_path,
   std::vector<tiny_dnn::label_t> train_labels, test_labels;
   std::vector<tiny_dnn::vec_t> train_images, test_images;
 
-  for (int i = 1; i <= 5; i++) {
-    parse_cifar10(data_dir_path + "/data_batch_" + std::to_string(i) + ".bin",
-                  &train_images, &train_labels, -1.0, 1.0, 0, 0);
+  // for (int i = 0; i < train_images_data.size(); i++) {
+  //   if(i % 5 == 0) {
+  //     test_images.push_back(train_images_data[i]);
+  //     test_labels.push_back(train_labels_data[i]);
+  //   } else {
+  //     train_images.push_back(train_images_data[i]);
+  //     train_labels.push_back(train_labels_data[i]);
+  //   }
+  // }
+
+
+  std::random_device rd;
+  std::mt19937 g(123);
+  std::shuffle(num_list.begin(), num_list.end(), g);
+
+  for(int i = 0;i < num_list.size();i++){
+    if(i % 5 == 0) {
+      test_images.push_back(train_images_data[num_list[i]]);
+      test_labels.push_back(train_labels_data[num_list[i]]);
+    } else {
+      train_images.push_back(train_images_data[num_list[i]]);
+      train_labels.push_back(train_labels_data[num_list[i]]);
+    }
   }
 
-  parse_cifar10(data_dir_path + "/test_batch.bin", &test_images, &test_labels,
-                -1.0, 1.0, 0, 0);
+  // for (int i = 1; i <= 5; i++) {
+  //   parse_cifar10(data_dir_path + "/data_batch_" + std::to_string(i) + ".bin",
+  //                 &train_images, &train_labels, -1.0, 1.0, 0, 0);
+  // }
+
+  // parse_cifar10(data_dir_path + "/test_batch.bin", &test_images, &test_labels,
+  //               -1.0, 1.0, 0, 0);
 
   std::cout << "start learning" << std::endl;
 
@@ -92,7 +163,7 @@ void train_cifar10(std::string data_dir_path,
   auto on_enumerate_minibatch = [&]() { disp += n_minibatch; };
 
   // training
-  nn.train<tiny_dnn::cross_entropy>(optimizer, train_images, train_labels,
+  nn.train<tiny_dnn::cross_entropy_multiclass>(optimizer, train_images, train_labels,
                                     n_minibatch, n_train_epochs,
                                     on_enumerate_minibatch, on_enumerate_epoch);
 

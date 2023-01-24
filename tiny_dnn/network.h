@@ -485,20 +485,39 @@ class network {
    **/
   template <typename E>
   float_t get_loss(const std::vector<vec_t> &in,
-                   const std::vector<label_t> &t) {
+                   const std::vector<label_t> &t, int &loss_count) {
     float_t sum_loss = float_t(0);
-
+    loss_count = 0;
     std::vector<tensor_t> label_tensor;
     normalize_tensor(t, label_tensor);
 
     for (size_t i = 0; i < in.size(); i++) {
       const vec_t predicted = predict(in[i]);
       for (size_t j = 0; j < predicted.size(); j++) {
-        sum_loss += E::f(predicted, label_tensor[i][j]);
+        if(predicted.size() == label_tensor[i][j].size()){
+          sum_loss += E::f(predicted, label_tensor[i][j]);
+          loss_count += 1;
+        }
       }
     }
-    return sum_loss;
+
+    return sum_loss / loss_count;
+    // return std::make_tuple(loss_count, sum_loss / loss_count);
   }
+
+
+  float_t calculate(const std::vector<vec_t> &in, const std::vector<label_t> &t, float_t &num_success, float_t &num_total) {
+    for (size_t i = 0; i < in.size(); i++) {
+      const label_t predicted = fprop_max_index(in[i]);
+      const label_t actual    = t[i];
+
+      if (predicted == actual) num_success++;
+      num_total++;
+    }
+    return num_success / num_total;
+  }
+
+
 
   /**
    * calculate loss value (the smaller, the better) for regression task
@@ -555,6 +574,7 @@ class network {
         continue;
       }
       std::vector<vec_t *> weights  = current->weights();
+      // std::cout << weights << std::endl;
       std::vector<tensor_t *> grads = current->weights_grads();
 
       if (weights.empty() || (*weights[0]).empty()) continue;
@@ -564,6 +584,7 @@ class network {
         case GRAD_CHECK_ALL:
           for (size_t i = 0; i < weights.size(); i++) {
             vec_t &w     = *weights[i];
+            // std::cout << *weights[i] << std::endl;
             tensor_t &dw = *grads[i];
             for (size_t j = 0; j < w.size(); j++) {
               if (!calc_delta<E>(in, v, w, dw, j, eps)) {
@@ -676,6 +697,7 @@ class network {
   void load(const std::string &filename,
             content_type what  = content_type::weights_and_model,
             file_format format = file_format::binary) {
+    std::cout << "Load model 1" << std::endl;
 #ifndef CNN_NO_SERIALIZATION
     std::ifstream ifs(filename.c_str(), std::ios::binary | std::ios::in);
     if (ifs.fail() || ifs.bad()) throw nn_error("failed to open:" + filename);
@@ -703,6 +725,7 @@ class network {
   void save(const std::string &filename,
             content_type what  = content_type::weights_and_model,
             file_format format = file_format::binary) const {
+    std::cout << "Save model 1" << std::endl;
 #ifndef CNN_NO_SERIALIZATION
     std::ofstream ofs(filename.c_str(), std::ios::binary | std::ios::out);
     if (ofs.fail() || ofs.bad()) throw nn_error("failed to open:" + filename);
@@ -760,12 +783,14 @@ class network {
 
   ///< @deprecated use save(filename,target,format) instead.
   void save(std::ostream &os) const {
+    std::cout << "Save model 2" << std::endl;
     os.precision(std::numeric_limits<tiny_dnn::float_t>::digits10);
     net_.save(os);
   }
 
   ///< @deprecated use load(filename,target,format) instead.
   void load(std::istream &is) {
+    std::cout << "Load model 2" << std::endl;
     is.precision(std::numeric_limits<tiny_dnn::float_t>::digits10);
     net_.load(is);
   }
@@ -1092,6 +1117,7 @@ class network {
   void normalize_tensor(const std::vector<label_t> &inputs,
                         std::vector<tensor_t> &normalized) {
     std::vector<vec_t> vec;
+    // std::cout << inputs.size() << std::endl;
     normalized.reserve(inputs.size());
     net_.label2vec(inputs, vec);
     normalize_tensor(vec, normalized);
