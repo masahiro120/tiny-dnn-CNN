@@ -7,8 +7,8 @@
 */
 #pragma once
 
-#include "tiny_dnn/core/backend.h"
-#include "tiny_dnn/core/params/maxpool_params.h"
+#include "../../core/backend.h"
+#include "../../core/params/maxpool_params.h"
 
 namespace tiny_dnn {
 namespace kernels {

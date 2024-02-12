@@ -13,14 +13,14 @@
 #include <string>
 #include <typeindex>
 
-#include <cereal/archives/json.hpp>
-#include <cereal/types/memory.hpp>
+#include "../../cereal/archives/json.hpp"
+#include "../../cereal/types/memory.hpp"
 
-#include "tiny_dnn/layers/layers.h"
-#include "tiny_dnn/util/macro.h"
-#include "tiny_dnn/util/nn_error.h"
-#include "tiny_dnn/util/serialization_functions.h"
-#include "tiny_dnn/util/serialization_layer_list.h"
+#include "../layers/layers.h"
+#include "../util/macro.h"
+#include "../util/nn_error.h"
+#include "../util/serialization_functions.h"
+#include "../util/serialization_layer_list.h"
 
 namespace tiny_dnn {
 

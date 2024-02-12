@@ -7,10 +7,10 @@
 */
 #pragma once
 
-#include "tiny_dnn/core/framework/op_kernel.h"
+#include "../../core/framework/op_kernel.h"
 
-#include "tiny_dnn/core/kernels/fully_connected_op_avx.h"
-#include "tiny_dnn/core/kernels/fully_connected_op_internal.h"
+#include "../../core/kernels/fully_connected_op_avx.h"
+#include "../../core/kernels/fully_connected_op_internal.h"
 
 namespace tiny_dnn {
 

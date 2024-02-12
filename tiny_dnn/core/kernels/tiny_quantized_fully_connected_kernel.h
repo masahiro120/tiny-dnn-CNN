@@ -11,9 +11,9 @@
 #include <vector>
 
 #ifdef CNN_USE_GEMMLOWP
-#include "tiny_dnn/core/kernels/tiny_quantization_kernel.h"
-#include "tiny_dnn/core/kernels/tiny_quantized_matmul_kernel.h"
-#include "tiny_dnn/core/params/fully_params.h"
+#include "../../core/kernels/tiny_quantization_kernel.h"
+#include "../../core/kernels/tiny_quantized_matmul_kernel.h"
+#include "../../core/params/fully_params.h"
 
 namespace tiny_dnn {
 namespace core {

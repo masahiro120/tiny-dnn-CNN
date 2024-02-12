@@ -10,8 +10,8 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "tiny_dnn/layers/cell.h"
-#include "tiny_dnn/layers/layer.h"
+#include "../layers/cell.h"
+#include "../layers/layer.h"
 
 namespace tiny_dnn {
 

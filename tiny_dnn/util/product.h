@@ -16,10 +16,10 @@
 #include <numeric>
 
 #ifdef CNN_USE_AVX
-#include "tiny_dnn/core/kernels/avx_kernel_common.h"
+#include "../core/kernels/avx_kernel_common.h"
 #endif
 
-#include "tiny_dnn/util/macro.h"
+#include "../util/macro.h"
 
 namespace vectorize {
 namespace detail {

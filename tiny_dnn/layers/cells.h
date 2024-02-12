@@ -6,9 +6,9 @@
     in the LICENSE file.
 */
 #pragma once
-#include "tiny_dnn/layers/gru_cell.h"
-#include "tiny_dnn/layers/lstm_cell.h"
-#include "tiny_dnn/layers/rnn_cell.h"
+#include "../layers/gru_cell.h"
+#include "../layers/lstm_cell.h"
+#include "../layers/rnn_cell.h"
 
 namespace tiny_dnn {
 // Wrappers for the cell constructors should be placed here.

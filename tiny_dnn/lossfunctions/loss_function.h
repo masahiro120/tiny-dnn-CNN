@@ -9,7 +9,7 @@
 
 #include <vector>
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 namespace tiny_dnn {
 
@@ -134,17 +134,18 @@ class cross_entropy_multiclass {
   static float_t f(const vec_t &y, const vec_t &t) {
     assert(y.size() == t.size());
     float_t d{0.0};
-
-    for (size_t i = 0; i < y.size(); ++i) d += -t[i] * std::log(y[i]);
+    float_t epsilon = 1e-6; // small positive value to avoid log zero
+    for (size_t i = 0; i < y.size(); ++i) d += -t[i] * std::log(y[i]+epsilon);
 
     return d;
   }
 
   static vec_t df(const vec_t &y, const vec_t &t) {
     assert(y.size() == t.size());
+    float_t epsilon = 1e-6; // small positive value to avoid log zero
     vec_t d(t.size());
 
-    for (size_t i = 0; i < y.size(); ++i) d[i] = -t[i] / y[i];
+    for (size_t i = 0; i < y.size(); ++i) d[i] = -t[i] / (y[i]+epsilon);
 
     return d;
   }

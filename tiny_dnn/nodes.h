@@ -14,13 +14,13 @@
 #include <vector>
 
 #ifndef CNN_NO_SERIALIZATION
-#include <cereal/types/tuple.hpp>
-#include <cereal/types/utility.hpp>
+#include "../cereal/types/tuple.hpp"
+#include "../cereal/types/utility.hpp"
 #endif
 
-#include "tiny_dnn/layers/layer.h"
-#include "tiny_dnn/optimizers/optimizer.h"
-#include "tiny_dnn/util/util.h"
+#include "layers/layer.h"
+#include "optimizers/optimizer.h"
+#include "util/util.h"
 
 namespace cereal {
 

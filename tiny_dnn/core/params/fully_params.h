@@ -7,7 +7,7 @@
 */
 #pragma once
 
-#include "tiny_dnn/core/params/params.h"
+#include "params.h"
 
 namespace tiny_dnn {
 namespace core {

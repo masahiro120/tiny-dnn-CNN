@@ -17,14 +17,24 @@
 #include <unordered_set>
 #include <vector>
 
-#include "tiny_dnn/optimizers/optimizer.h"
-#include "tiny_dnn/util/product.h"
-#include "tiny_dnn/util/util.h"
-#include "tiny_dnn/util/weight_init.h"
+#include "optimizers/optimizer.h"
+#include "util/product.h"
+#include "util/util.h"
+#include "util/weight_init.h"
 
 #ifdef DNN_USE_IMAGE_API
-#include "tiny_dnn/util/image.h"
+#include "util/image.h"
 #endif
+
+
+#include "half.hpp"
+#include "half_define.h"
+
+using namespace half_float;
+
+// #define MARGE_HALF 0
+
+std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
 
 namespace tiny_dnn {
 
@@ -87,6 +97,8 @@ class edge {
       prev_(prev) {}
 
   void merge_grads(vec_t *dst) {
+#if MARGE_HALF == 0
+#if 1
     assert(!grad_.empty());
     const auto &grad_head = grad_[0];
     size_t sz             = grad_head.size();
@@ -100,6 +112,23 @@ class edge {
       // dst += grad_[sample]
       vectorize::reduce<float_t>(&grad_[sample][0], sz, pdst);
     }
+#else
+    assert(!grad_.empty());
+    const auto &grad_head = grad_[0];
+    size_t sz             = grad_head.size();
+    dst->resize(sz);
+    half_t *pdst = &(*dst)[0];
+    // dst = grad_[0]
+    std::copy(grad_head.begin(), grad_head.end(), pdst);
+    // @todo consider adding parallelism
+    for (size_t sample = 1, sample_count = grad_.size(); sample < sample_count;
+         ++sample) {
+      // dst += grad_[sample]
+      vectorize::reduce<half_t>(&grad_[sample][0], sz, pdst);
+    }
+#endif
+#else
+#endif
   }
 
   void clear_grads() {
@@ -112,12 +141,15 @@ class edge {
 
   tensor_t *get_data() { return &data_; }
 
-  const tensor_t *get_data() const { return &data_; }
-
-  tensor_t weight_update() {
-    auto get_data = data_;
-    return get_data;
+  //自分で作成
+  // void *set_data(tensor_t w) {data_ = w;}
+  void weight_bias_update(vec_t v) {
+    tensor_t v_2d;
+    v_2d.push_back(v);
+    data_ = v_2d;
   }
+
+  const tensor_t *get_data() const { return &data_; }
 
   tensor_t *get_gradient() { return &grad_; }
 

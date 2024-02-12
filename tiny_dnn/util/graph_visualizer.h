@@ -11,9 +11,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "tiny_dnn/layers/layer.h"
-#include "tiny_dnn/network.h"
-#include "tiny_dnn/node.h"
+#include "../layers/layer.h"
+#include "../network.h"
+#include "../node.h"
 
 namespace tiny_dnn {
 

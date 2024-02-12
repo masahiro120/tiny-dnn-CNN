@@ -7,11 +7,11 @@
 */
 #pragma once
 
-#include "tiny_dnn/core/framework/op_kernel.h"
+#include "../../core/framework/op_kernel.h"
 
-#include "tiny_dnn/core/kernels/conv2d_op_avx.h"
-#include "tiny_dnn/core/kernels/conv2d_op_internal.h"
-#include "tiny_dnn/core/kernels/conv2d_op_nnpack.h"
+#include "../../core/kernels/conv2d_op_avx.h"
+#include "../../core/kernels/conv2d_op_internal.h"
+#include "../../core/kernels/conv2d_op_nnpack.h"
 
 namespace tiny_dnn {
 

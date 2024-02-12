@@ -7,7 +7,7 @@
 */
 #pragma once
 
-#include "tiny_dnn/layers/layers.h"
+#include "../layers/layers.h"
 
 namespace tiny_dnn {
 

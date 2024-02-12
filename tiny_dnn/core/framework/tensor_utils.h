@@ -13,9 +13,9 @@
 #include <limits>
 #include <numeric>  // std::accumulate
 
-#include "tiny_dnn/xtensor/xio.hpp"
+#include "../../xtensor/xio.hpp"
 
-#include "tiny_dnn/core/framework/tensor.h"
+#include "../framework/tensor.h"
 
 namespace tiny_dnn {
 

@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <vector>
 
-#include "tiny_dnn/core/framework/device.fwd.h"
+#include "../framework/device.fwd.h"
 
 #if defined(USE_OPENCL) || defined(USE_CUDA)
 #ifdef USE_OPENCL

@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <vector>
 
-#include "tiny_dnn/core/framework/op_kernel.h"
+#include "../../core/framework/op_kernel.h"
 
 namespace tiny_dnn {
 

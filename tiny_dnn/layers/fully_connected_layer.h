@@ -12,10 +12,10 @@
 #include <utility>
 #include <vector>
 
-#include "tiny_dnn/layers/layer.h"
+#include "../layers/layer.h"
 
-#include "tiny_dnn/core/kernels/fully_connected_grad_op.h"
-#include "tiny_dnn/core/kernels/fully_connected_op.h"
+#include "../core/kernels/fully_connected_grad_op.h"
+#include "../core/kernels/fully_connected_op.h"
 
 namespace tiny_dnn {
 

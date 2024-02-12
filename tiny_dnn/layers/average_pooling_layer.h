@@ -12,11 +12,11 @@
 #include <utility>
 #include <vector>
 
-#include "tiny_dnn/layers/partial_connected_layer.h"
-#include "tiny_dnn/util/util.h"
+#include "../layers/partial_connected_layer.h"
+#include "../util/util.h"
 
 #ifdef DNN_USE_IMAGE_API
-#include "tiny_dnn/util/image.h"
+#include "../util/image.h"
 #endif  // DNN_USE_IMAGE_API
 
 namespace tiny_dnn {

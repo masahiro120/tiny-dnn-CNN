@@ -19,19 +19,19 @@
 #include <utility>
 #include <vector>
 
-#include "tiny_dnn/core/backend.h"
-#include "tiny_dnn/core/framework/device.fwd.h"
-#include "tiny_dnn/node.h"
+#include "../core/backend.h"
+#include "../core/framework/device.fwd.h"
+#include "../node.h"
 
-#include "tiny_dnn/util/parallel_for.h"
-#include "tiny_dnn/util/product.h"
-#include "tiny_dnn/util/util.h"
-#include "tiny_dnn/util/weight_init.h"
+#include "../util/parallel_for.h"
+#include "../util/product.h"
+#include "../util/util.h"
+#include "../util/weight_init.h"
 
-#include "tiny_dnn/optimizers/optimizer.h"
+#include "../optimizers/optimizer.h"
 
 #ifdef DNN_USE_IMAGE_API
-#include "tiny_dnn/util/image.h"
+#include "../util/image.h"
 #endif
 
 namespace tiny_dnn {
@@ -163,6 +163,7 @@ class layer : public node {
         v.push_back(get_weight_data(i));
       }
     }
+    std::cout << &v << std::endl;
     return v;
   }
 
@@ -174,6 +175,11 @@ class layer : public node {
       }
     }
     return v;
+  }
+
+  void weight_bias_set(vec_t weights, vec_t bias) {
+    prev()[1]->weight_bias_update(weights);
+    prev()[2]->weight_bias_update(bias);
   }
 
   std::vector<tensor_t *> weights_grads() {

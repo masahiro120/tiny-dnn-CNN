@@ -7,7 +7,7 @@
 */
 #pragma once
 
-#include "tiny_dnn/core/params/fully_params.h"
+#include "../../core/params/fully_params.h"
 
 #ifdef CNN_USE_INTEL_MKL
 extern "C" {

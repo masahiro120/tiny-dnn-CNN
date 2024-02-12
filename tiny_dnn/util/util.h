@@ -21,28 +21,28 @@
 #include <utility>
 #include <vector>
 
-#include "tiny_dnn/xtensor/xarray.hpp"
-#include "tiny_dnn/xtensor/xview.hpp"
+#include "../xtensor/xarray.hpp"
+#include "../xtensor/xview.hpp"
 
-#include "tiny_dnn/config.h"
+#include "../config.h"
 
 #ifndef CNN_NO_SERIALIZATION
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/cereal.hpp>
-#include <cereal/types/deque.hpp>
-#include <cereal/types/polymorphic.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/vector.hpp>
+#include "../../cereal/archives/binary.hpp"
+#include "../../cereal/archives/json.hpp"
+#include "../../cereal/archives/portable_binary.hpp"
+#include "../../cereal/cereal.hpp"
+#include "../../cereal/types/deque.hpp"
+#include "../../cereal/types/polymorphic.hpp"
+#include "../../cereal/types/string.hpp"
+#include "../../cereal/types/vector.hpp"
 #endif
 
-#include "tiny_dnn/util/aligned_allocator.h"
-#include "tiny_dnn/util/macro.h"
-#include "tiny_dnn/util/nn_error.h"
-#include "tiny_dnn/util/parallel_for.h"
-#include "tiny_dnn/util/product.h"
-#include "tiny_dnn/util/random.h"
+#include "../util/aligned_allocator.h"
+#include "../util/macro.h"
+#include "../util/nn_error.h"
+#include "../util/parallel_for.h"
+#include "../util/product.h"
+#include "../util/random.h"
 
 #if defined(USE_OPENCL) || defined(USE_CUDA)
 #ifdef USE_OPENCL

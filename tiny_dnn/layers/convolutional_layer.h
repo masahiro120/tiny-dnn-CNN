@@ -13,15 +13,15 @@
 #include <utility>
 #include <vector>
 
-#include "tiny_dnn/core/kernels/conv2d_grad_op.h"
-#include "tiny_dnn/core/kernels/conv2d_op.h"
-#include "tiny_dnn/core/kernels/conv2d_op_libdnn.h"
-#include "tiny_dnn/core/kernels/conv2d_op_opencl.h"
+#include "../core/kernels/conv2d_grad_op.h"
+#include "../core/kernels/conv2d_op.h"
+#include "../core/kernels/conv2d_op_libdnn.h"
+#include "../core/kernels/conv2d_op_opencl.h"
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 #ifdef DNN_USE_IMAGE_API
-#include "tiny_dnn/util/image.h"
+#include "../util/image.h"
 #endif  // DNN_USE_IMAGE_API
 
 namespace tiny_dnn {

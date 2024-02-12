@@ -11,7 +11,7 @@
 #include <memory>
 #include <vector>
 
-#include "tiny_dnn/core/framework/op_kernel.h"
+#include "../../core/framework/op_kernel.h"
 
 #ifdef CNN_USE_LIBDNN
 #include "libdnn.hpp"

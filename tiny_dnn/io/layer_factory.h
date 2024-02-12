@@ -9,8 +9,8 @@
 
 #include <vector>
 
-#include "tiny_dnn/layers/fully_connected_layer.h"
-#include "tiny_dnn/util/util.h"
+#include "../layers/fully_connected_layer.h"
+#include "../util/util.h"
 
 namespace tiny_dnn {
 

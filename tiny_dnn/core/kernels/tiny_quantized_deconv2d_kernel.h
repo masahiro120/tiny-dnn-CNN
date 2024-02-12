@@ -10,8 +10,8 @@
 #include <algorithm>
 #include <vector>
 
-#include "tiny_dnn/core/kernels/tiny_quantization_kernel.h"
-#include "tiny_dnn/core/params/deconv_params.h"
+#include "../../core/kernels/tiny_quantization_kernel.h"
+#include "../../core/params/deconv_params.h"
 
 namespace tiny_dnn {
 namespace core {

@@ -9,8 +9,8 @@
 
 #include <memory>
 
-#include "tiny_dnn/activations/activation_layer.h"
-#include "tiny_dnn/core/params/params.h"
+#include "../../activations/activation_layer.h"
+#include "params.h"
 
 namespace tiny_dnn {
 namespace core {

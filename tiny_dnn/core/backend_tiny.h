@@ -9,16 +9,16 @@
 
 #include <vector>
 
-#include "tiny_dnn/config.h"
-#include "tiny_dnn/core/backend.h"
+#include "../config.h"
+#include "../core/backend.h"
 
-#include "tiny_dnn/core/kernels/tiny_deconv2d_back_kernel.h"
-#include "tiny_dnn/core/kernels/tiny_deconv2d_kernel.h"
-#include "tiny_dnn/core/kernels/tiny_quantized_conv2d_kernel.h"
-#include "tiny_dnn/core/kernels/tiny_quantized_deconv2d_kernel.h"
+#include "../core/kernels/tiny_deconv2d_back_kernel.h"
+#include "../core/kernels/tiny_deconv2d_kernel.h"
+#include "../core/kernels/tiny_quantized_conv2d_kernel.h"
+#include "../core/kernels/tiny_quantized_deconv2d_kernel.h"
 
 #ifdef CNN_USE_GEMMLOWP
-#include "tiny_dnn/core/kernels/tiny_quantized_fully_connected_kernel.h"
+#include "../core/kernels/tiny_quantized_fully_connected_kernel.h"
 #endif  // CNN_USE_GEMMLOWP
 
 namespace tiny_dnn {

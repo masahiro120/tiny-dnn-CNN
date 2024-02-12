@@ -9,7 +9,7 @@
 
 #include <exception>
 #include <string>
-#include "tiny_dnn/util/colored_print.h"
+#include "../util/colored_print.h"
 
 namespace tiny_dnn {
 

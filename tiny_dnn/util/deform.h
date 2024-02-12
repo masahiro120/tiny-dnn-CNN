@@ -7,7 +7,7 @@
 */
 #pragma once
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 namespace tiny_dnn {
 

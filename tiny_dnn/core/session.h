@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "tiny_dnn/core/device.h"
+#include "../core/device.h"
 
 namespace tiny_dnn {
 namespace core {

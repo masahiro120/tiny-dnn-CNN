@@ -9,9 +9,9 @@
 
 #include <vector>
 
-#include "tiny_dnn/core/backend.h"
-#include "tiny_dnn/core/kernels/avx_deconv2d_back_kernel.h"
-#include "tiny_dnn/core/kernels/avx_deconv2d_kernel.h"
+#include "../core/backend.h"
+#include "../core/kernels/avx_deconv2d_back_kernel.h"
+#include "../core/kernels/avx_deconv2d_kernel.h"
 
 namespace tiny_dnn {
 namespace core {

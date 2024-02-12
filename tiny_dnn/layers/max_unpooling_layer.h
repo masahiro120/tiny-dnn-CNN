@@ -11,10 +11,10 @@
 #include <string>
 #include <vector>
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 #ifdef DNN_USE_IMAGE_API
-#include "tiny_dnn/util/image.h"
+#include "../util/image.h"
 #endif
 
 namespace tiny_dnn {

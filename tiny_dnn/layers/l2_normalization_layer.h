@@ -12,9 +12,9 @@
 #include <string>
 #include <vector>
 
-#include "tiny_dnn/layers/layer.h"
-#include "tiny_dnn/util/math_functions.h"
-#include "tiny_dnn/util/util.h"
+#include "../layers/layer.h"
+#include "../util/math_functions.h"
+#include "../util/util.h"
 
 namespace tiny_dnn {
 

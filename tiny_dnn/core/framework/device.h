@@ -7,8 +7,8 @@
 */
 #pragma once
 
-#include "tiny_dnn/core/framework/device.fwd.h"
-#include "tiny_dnn/core/framework/program_manager.h"
+#include "../framework/device.fwd.h"
+#include "../framework/program_manager.h"
 
 namespace tiny_dnn {
 

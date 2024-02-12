@@ -10,7 +10,7 @@
 #include <algorithm>
 #include <unordered_map>
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 namespace tiny_dnn {
 
@@ -242,6 +242,46 @@ struct nesterov_momentum : public stateful_optimizer<1> {
   float_t alpha;   // learning rate
   float_t lambda;  // weight decay
   float_t mu;      // momentum
+};
+
+/**
+ * RAdam
+ *
+ * L Liu, H Jiang, P He, W Chen, X Liu, J Gao, and J Han,
+ * On the Variance of the Adaptive Learning Rate and Beyond, arXiv preprint arXiv:1908.03265, 2019.
+ **/
+struct radam : public stateful_optimizer<2> {
+  radam()
+    : alpha(float_t(0.001)),
+      b1(float_t(0.9)),
+      b2(float_t(0.999)),
+      b1_t(b1),
+      eps(float_t(1e-8)) {}
+
+  void update(const vec_t &dW, vec_t &W, bool parallelize) {
+    vec_t &mt = get<0>(W);
+    vec_t &vt = get<1>(W);
+
+    for_i(parallelize, W.size(), [&](size_t i) {
+      mt[i] = b1 * mt[i] + (float_t(1) - b1) * dW[i];
+      vt[i] = b2 * vt[i] + (float_t(1) - b2) * dW[i] * dW[i];
+
+      // Compute RAdam update here based on mt, vt, and other RAdam specific parameters
+
+      // W[i] -= computed_update_value;
+    });
+
+    b1_t *= b1;
+    // Add other RAdam specific updates if necessary
+  }
+
+  float_t alpha;  // learning rate
+  float_t b1;     // decay term
+  float_t b2;     // decay term
+  float_t b1_t;   // decay term power t
+
+ private:
+  float_t eps;  // constant value to avoid zero-division
 };
 
 }  // namespace tiny_dnn

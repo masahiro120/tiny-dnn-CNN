@@ -14,7 +14,7 @@
 #include <string>
 #include <vector>
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 #ifdef _MSC_VER
 #pragma warning(push)

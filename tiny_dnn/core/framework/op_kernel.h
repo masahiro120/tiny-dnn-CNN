@@ -11,8 +11,8 @@
 #include <string>
 #include <vector>
 
-#include "tiny_dnn/core/framework/device.fwd.h"
-#include "tiny_dnn/core/params/conv_params.h"
+#include "../../core/framework/device.fwd.h"
+#include "../../core/params/conv_params.h"
 
 namespace tiny_dnn {
 namespace core {

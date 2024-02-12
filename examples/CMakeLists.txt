@@ -19,8 +19,8 @@ target_link_libraries(benchmarks_all
 cotire(benchmarks_all)
 
 if(USE_SERIALIZER)
-
-    add_executable(example_mnist_train mnist/train.cpp ${tiny_dnn_headers})
+    
+    add_executable(example_mnist_train mnist/train.cpp ${tiny_dnn_headers} ../half_function.cpp)
     target_link_libraries(example_mnist_train
         ${project_library_target_name} ${REQUIRED_LIBRARIES})
 

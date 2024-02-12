@@ -9,13 +9,13 @@
 
 #include <vector>
 
-#include "tiny_dnn/core/params/conv_params.h"
-#include "tiny_dnn/core/params/deconv_params.h"
-#include "tiny_dnn/core/params/fully_params.h"
-#include "tiny_dnn/core/params/global_avepool_params.h"
-#include "tiny_dnn/core/params/maxpool_params.h"
-#include "tiny_dnn/layers/layer.h"
-#include "tiny_dnn/node.h"
+#include "../core/params/conv_params.h"
+#include "../core/params/deconv_params.h"
+#include "../core/params/fully_params.h"
+#include "../core/params/global_avepool_params.h"
+#include "../core/params/maxpool_params.h"
+#include "../layers/layer.h"
+#include "../node.h"
 
 #ifdef CNN_USE_NNPACK
 #include <nnpack.h>

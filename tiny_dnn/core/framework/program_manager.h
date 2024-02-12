@@ -9,10 +9,10 @@
 
 #include <unordered_map>
 
-#include "tiny_dnn/layers/layer.h"
+#include "../../layers/layer.h"
 
-#include "tiny_dnn/core/framework/device.fwd.h"
-#include "tiny_dnn/core/framework/program.h"
+#include "../../core/framework/device.fwd.h"
+#include "../../core/framework/program.h"
 
 #if defined(USE_OPENCL) || defined(USE_CUDA)
 #ifdef USE_OPENCL

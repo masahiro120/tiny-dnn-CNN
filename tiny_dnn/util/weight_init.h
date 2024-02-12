@@ -7,7 +7,7 @@
 */
 #pragma once
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 namespace tiny_dnn {
 namespace weight_init {
@@ -106,6 +106,21 @@ class he : public scalable {
     gaussian_rand(weight->begin(), weight->end(), float_t{0}, sigma);
   }
 };
+
+// class custom_init : public scalable {
+//  public:
+//   custom_init(const vec_t& weights) : weights_(weights) {}
+
+//   void fill(vec_t *weight, size_t fan_in, size_t fan_out) override {
+//     CNN_UNREFERENCED_PARAMETER(fan_in);
+//     CNN_UNREFERENCED_PARAMETER(fan_out);
+//     *weight = weights;
+
+//   }
+
+//  private:
+//   vec_t weights_;
+// };
 
 }  // namespace weight_init
 }  // namespace tiny_dnn

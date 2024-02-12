@@ -8,11 +8,11 @@
 #pragma once
 
 #include <vector>
-#include "tiny_dnn/core/kernels/conv2d_op_internal.h"
-#include "tiny_dnn/core/params/conv_params.h"
+#include "../../core/kernels/conv2d_op_internal.h"
+#include "../../core/params/conv_params.h"
 
 #ifdef CNN_USE_AVX
-#include "tiny_dnn/core/kernels/avx_kernel_common.h"
+#include "../../core/kernels/avx_kernel_common.h"
 #endif
 
 namespace tiny_dnn {

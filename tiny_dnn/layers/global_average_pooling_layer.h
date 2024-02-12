@@ -13,11 +13,11 @@
 #include <utility>
 #include <vector>
 
-#include "tiny_dnn/layers/layer.h"
-#include "tiny_dnn/util/util.h"
+#include "../layers/layer.h"
+#include "../util/util.h"
 
-#include "tiny_dnn/core/kernels/global_avepool_grad_op.h"
-#include "tiny_dnn/core/kernels/global_avepool_op.h"
+#include "../core/kernels/global_avepool_grad_op.h"
+#include "../core/kernels/global_avepool_op.h"
 
 namespace tiny_dnn {
 

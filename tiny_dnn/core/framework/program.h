@@ -9,8 +9,8 @@
 
 #include <string>
 
-#include "tiny_dnn/core/framework/device.fwd.h"
-#include "tiny_dnn/layers/layer.h"
+#include "../../core/framework/device.fwd.h"
+#include "../../layers/layer.h"
 
 #if defined(USE_OPENCL) || defined(USE_CUDA)
 #ifdef USE_OPENCL

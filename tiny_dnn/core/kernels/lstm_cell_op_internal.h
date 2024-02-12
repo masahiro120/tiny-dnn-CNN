@@ -7,7 +7,7 @@
 */
 #pragma once
 
-#include "tiny_dnn/core/params/lstm_cell_params.h"
+#include "../../core/params/lstm_cell_params.h"
 
 namespace tiny_dnn {
 namespace kernels {

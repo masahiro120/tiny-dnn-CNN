@@ -14,15 +14,15 @@
 #include <utility>
 #include <vector>
 
-#include "tiny_dnn/core/backend_tiny.h"
+#include "../core/backend_tiny.h"
 #ifdef CNN_USE_AVX
-#include "tiny_dnn/core/backend_avx.h"
+#include "../core/backend_avx.h"
 #endif  // CNN_USE_AVX
 
-#include "tiny_dnn/util/util.h"
+#include "../util/util.h"
 
 #ifdef DNN_USE_IMAGE_API
-#include "tiny_dnn/util/image.h"
+#include "../util/image.h"
 #endif  // DNN_USE_IMAGE_API
 
 namespace tiny_dnn {

@@ -12,9 +12,24 @@
 #include <string>
 #include <vector>
 
-#include "tiny_dnn/layers/layer.h"
-#include "tiny_dnn/util/math_functions.h"
-#include "tiny_dnn/util/util.h"
+#include "../layers/layer.h"
+#include "../util/math_functions.h"
+#include "../util/util.h"
+
+#include "../half.hpp"
+#include "../half_define.h"
+
+// #define BATCH_NORM_F_HALF 1
+// #define BATCH_NORM_B_HALF 1
+
+std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
+std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
+std::vector<std::vector<std::vector<half>>> three_vector_to_half(const std::vector<tiny_dnn::tensor_t>& array);
+void moments_half(const std::vector<std::vector<half>> &in, size_t spatial_dim, size_t channels, std::vector<half> &mean);
+void moments_half(const std::vector<std::vector<half>> &in, size_t spatial_dim, size_t channels, std::vector<half> &mean, std::vector<half> &variance);
+void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
+void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<std::vector<std::vector<half>>> array_half);
+
 
 namespace tiny_dnn {
 
@@ -36,7 +51,7 @@ class batch_normalization_layer : public layer {
    **/
   batch_normalization_layer(const layer &prev_layer,
                             float_t epsilon  = 1e-5,
-                            float_t momentum = 0.999,
+                            float_t momentum = 0.5,
                             net_phase phase  = net_phase::train)
     : Base({vector_type::data}, {vector_type::data}),
       in_channels_(prev_layer.out_shape()[0].depth_),
@@ -59,7 +74,7 @@ class batch_normalization_layer : public layer {
   batch_normalization_layer(size_t in_spatial_size,
                             size_t in_channels,
                             float_t epsilon  = 1e-5,
-                            float_t momentum = 0.999,
+                            float_t momentum = 0.5,
                             net_phase phase  = net_phase::train)
     : Base({vector_type::data}, {vector_type::data}),
       in_channels_(in_channels),
@@ -91,6 +106,9 @@ class batch_normalization_layer : public layer {
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
                         std::vector<tensor_t *> &in_grad) override {
+#if BATCH_NORM_B_HALF == 0
+
+#if 1
     tensor_t &prev_delta     = *in_grad[0];
     tensor_t &curr_delta     = *out_grad[0];
     const tensor_t &curr_out = *out_data[0];
@@ -128,10 +146,135 @@ class batch_normalization_layer : public layer {
         }
       }
     });
+#else
+    std::vector<tiny_dnn::tensor_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor_t> out_data_val(out_data.size());
+    std::vector<tiny_dnn::tensor_t> in_grad_val(in_grad.size());
+    std::vector<tiny_dnn::tensor_t> out_grad_val(out_grad.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < in_grad.size(); ++i) {
+        in_grad_val[i] = *(in_grad[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_grad.size(); ++i) {
+        out_grad_val[i] = *(out_grad[i]); // ポインタのデリファレンス
+    }
+    
+    const size_t num_samples = out_data_val[0].size();
+
+    CNN_UNREFERENCED_PARAMETER(in_data);
+
+    tensor_t delta_dot_y = out_data_val[0];
+    vec_t mean_delta_dot_y, mean_delta, mean_Y;
+
+    for (size_t i = 0; i < num_samples; i++) {
+      for (size_t j = 0; j < out_data_val[0][0].size(); j++) {
+        delta_dot_y[i][j] *= out_grad_val[0][i][j];
+      }
+    }
+
+    moments(delta_dot_y, in_spatial_size_, in_channels_, mean_delta_dot_y);
+    moments(out_grad_val[0], in_spatial_size_, in_channels_, mean_delta);
+
+    for_i(num_samples, [&](size_t i) {
+      for (size_t j = 0; j < in_channels_; j++) {
+        for (size_t k = 0; k < in_spatial_size_; k++) {
+          size_t index = j * in_spatial_size_ + k;
+
+          in_grad_val[0][i][index] = out_grad_val[0][i][index] - mean_delta[j] -
+                                 mean_delta_dot_y[j] * out_data_val[0][i][index];
+
+          // stddev_ is calculated in the forward pass
+          in_grad_val[0][i][index] /= stddev_[j];
+        }
+      }
+    });
+
+    for (size_t i = 0; i < in_grad.size(); ++i) {
+        *(in_grad[i]) = in_grad_val[i]; // ポインタのデリファレンス
+    }
+
+#endif
+#else
+
+    std::vector<tiny_dnn::tensor_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor_t> out_data_val(out_data.size());
+    std::vector<tiny_dnn::tensor_t> in_grad_val(in_grad.size());
+    std::vector<tiny_dnn::tensor_t> out_grad_val(out_grad.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < in_grad.size(); ++i) {
+        in_grad_val[i] = *(in_grad[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_grad.size(); ++i) {
+        out_grad_val[i] = *(out_grad[i]); // ポインタのデリファレンス
+    }
+
+    std::vector<std::vector<std::vector<half>>> in_data_half = three_vector_to_half(in_data_val);
+    std::vector<std::vector<std::vector<half>>> out_data_half = three_vector_to_half(out_data_val);
+    std::vector<std::vector<std::vector<half>>> in_grad_half = three_vector_to_half(in_grad_val);
+    std::vector<std::vector<std::vector<half>>> out_grad_half = three_vector_to_half(out_grad_val);
+
+    const size_t num_samples = out_data_half[0].size();
+
+    CNN_UNREFERENCED_PARAMETER(in_data);
+
+    std::vector<std::vector<half>> delta_dot_y_half = out_data_half[0];
+    std::vector<half> mean_delta_dot_y_half, mean_delta_half, mean_Y_half;
+
+    for (size_t i = 0; i < num_samples; i++) {
+      for (size_t j = 0; j < out_data_half[0][0].size(); j++) {
+        delta_dot_y_half[i][j] *= out_grad_half[0][i][j];
+      }
+    }
+
+    moments_half(delta_dot_y_half, in_spatial_size_, in_channels_, mean_delta_dot_y_half);
+    moments_half(out_grad_half[0], in_spatial_size_, in_channels_, mean_delta_half);
+
+    std::vector<half> stddev_half = one_vector_to_half(stddev_);
+
+    for_i(num_samples, [&](size_t i) {
+      for (size_t j = 0; j < in_channels_; j++) {
+        for (size_t k = 0; k < in_spatial_size_; k++) {
+          size_t index = j * in_spatial_size_ + k;
+
+          in_grad_half[0][i][index] = out_grad_half[0][i][index] - mean_delta_half[j] -
+                                 mean_delta_dot_y_half[j] * out_data_half[0][i][index];
+
+          // stddev_ is calculated in the forward pass
+          in_grad_half[0][i][index] /= stddev_half[j];
+        }
+      }
+    });
+
+    three_half_to_vector(in_grad_val, in_grad_half);
+
+    for (size_t i = 0; i < in_grad.size(); ++i) {
+        *(in_grad[i]) = in_grad_val[i]; // ポインタのデリファレンス
+    }
+#endif
   }
 
   void forward_propagation(const std::vector<tensor_t *> &in_data,
                            std::vector<tensor_t *> &out_data) override {
+#if BATCH_NORM_F_HALF == 0
+#if 0
     vec_t &mean = (phase_ == net_phase::train) ? mean_current_ : mean_;
     vec_t &variance =
       (phase_ == net_phase::train) ? variance_current_ : variance_;
@@ -163,6 +306,159 @@ class batch_normalization_layer : public layer {
       mean_     = mean_current_;
       variance_ = variance_current_;
     }
+
+#else
+
+    std::vector<tiny_dnn::tensor_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor_t> out_data_val(out_data.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    vec_t mean;
+    vec_t variance;
+
+    if (phase_ == net_phase::train) {
+      // calculate mean/variance from this batch in train phase
+      mean = mean_current_;
+      variance = variance_current_;
+      moments(in_data_val[0], in_spatial_size_, in_channels_, mean, variance);
+    } else {
+      mean = mean_;
+      variance = variance_;
+    }
+
+    vec_t stddev = stddev_;
+
+    for (size_t i = 0; i < in_channels_; i++) {
+      stddev[i] = sqrt(variance[i] + float(eps_));
+    }
+
+    for_i(in_data[0]->size(), [&](size_t i) {
+      for (size_t j = 0; j < in_channels_; j++) {
+        float m = mean[j];
+
+        for (size_t k = 0; k < in_spatial_size_; k++) {
+          out_data_val[0][i][j * in_spatial_size_ + k] = (in_data_val[0][i][j * in_spatial_size_ + k] - m) / stddev[j];
+        }
+      }
+    });
+
+
+    if (phase_ == net_phase::train && update_immidiately_) {
+      mean_     = mean;
+      // one_half_to_vector(mean_, mean_half);
+      variance_ = variance;
+      // one_half_to_vector(variance_, variance_half);
+    } else {
+      mean_current_ = mean;
+      variance_current_ = variance;
+    }
+
+    // one_half_to_vector(stddev_, stddev_half);
+    stddev_ = stddev;
+    
+    // three_half_to_vector(out_data_val, out_data_half);
+    
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        *(out_data[i]) = out_data_val[i]; // ポインタのデリファレンス
+    }
+
+    // out check
+    // std::cout << "After forward_propagation" << std::endl;
+    // std::cout << "out_data_val[0][0][0] = " << out_data_val[0][0][0] << std::endl;
+
+#endif
+    // std::cout << "*out_data[0][0][0] = " << (*out_data[0])[0][0] << std::endl;
+    // std::cout << "mean_ = " << mean_[0] << std::endl;
+    // std::cout << "variance_ = " << variance_[0] << std::endl;
+    // std::cout << "stddev_ = " << stddev_[0] << std::endl << std::endl;
+    // std::cout << "mean_current_ = " << mean_current_[0] << std::endl;
+    // std::cout << "variance_current_ = " << variance_current_[0] << std::endl;
+    // std::cout << "tmp_mean_ = " << tmp_mean_[0] << std::endl;
+    // std::cout << std::endl;
+
+
+#else
+
+    // std::vector<std::vector<std::vector<half>>> in_data_half = three_vector_to_half(*in_data);
+    // std::vector<std::vector<std::vector<half>>> out_data_half = three_vector_to_half(*out_data);
+
+
+    // in_dataとout_dataから値のベクターを作成します。
+    std::vector<tiny_dnn::tensor_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor_t> out_data_val(out_data.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    // 変換関数を呼び出します。
+    std::vector<std::vector<std::vector<half>>> in_data_half = three_vector_to_half(in_data_val);
+    std::vector<std::vector<std::vector<half>>> out_data_half = three_vector_to_half(out_data_val);
+    
+    std::vector<half> mean_half;
+    std::vector<half> variance_half;
+
+    if (phase_ == net_phase::train) {
+      // calculate mean/variance from this batch in train phase
+      mean_half = one_vector_to_half(mean_current_);
+      variance_half = one_vector_to_half(variance_current_);
+      moments_half(in_data_half[0], in_spatial_size_, in_channels_, mean_half, variance_half);
+    } else {
+      mean_half = one_vector_to_half(mean_);
+      variance_half = one_vector_to_half(variance_);
+    }
+
+    std::vector<half> stddev_half = one_vector_to_half(stddev_);
+
+    for (size_t i = 0; i < in_channels_; i++) {
+      stddev_half[i] = sqrt(variance_half[i] + half(eps_));
+      if (stddev_half[i] <= half(0) || std::isnan(stddev_half[i])) {
+        printf("stddev_half[%d] = %f, variance_half[%d] = %f, eps_ = %f\n", i, (float)stddev_half[i], i, (float)variance_half[i], (float)eps_);
+      }
+    }
+
+    for_i(in_data[0]->size(), [&](size_t i) {
+      for (size_t j = 0; j < in_channels_; j++) {
+        half m = mean_half[j];
+
+        for (size_t k = 0; k < in_spatial_size_; k++) {
+          out_data_half[0][i][j * in_spatial_size_ + k] = (in_data_half[0][i][j * in_spatial_size_ + k] - m) / stddev_half[j];
+        }
+      }
+    });
+
+
+    if (phase_ == net_phase::train && update_immidiately_) {
+      // mean_     = mean_current_;;
+      one_half_to_vector(mean_, mean_half);
+      // variance_ = variance_current_;
+      one_half_to_vector(variance_, variance_half);
+    } else {
+      one_half_to_vector(mean_current_, mean_half);
+      one_half_to_vector(variance_current_, variance_half);
+    }
+
+    one_half_to_vector(stddev_, stddev_half);
+    
+    three_half_to_vector(out_data_val, out_data_half);
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        *(out_data[i]) = out_data_val[i]; // ポインタのデリファレンス
+    }
+
+#endif
   }
 
   void set_context(net_phase ctx) override { phase_ = ctx; }
@@ -171,9 +467,11 @@ class batch_normalization_layer : public layer {
 
   void post_update() override {
     for (size_t i = 0; i < mean_.size(); i++) {
-      mean_[i] = momentum_ * mean_[i] + (1 - momentum_) * mean_current_[i];
-      variance_[i] =
-        momentum_ * variance_[i] + (1 - momentum_) * variance_current_[i];
+      mean_[i] = (mean_[i] == 0) ? mean_current_[i]
+          : momentum_ * mean_[i] + (1 - momentum_) * mean_current_[i];
+      
+      variance_[i] = (variance_[i] == 0) ? variance_current_[i]
+          : momentum_ * variance_[i] + (1 - momentum_) * variance_current_[i];
     }
   }
 
@@ -210,6 +508,10 @@ class batch_normalization_layer : public layer {
     variance_ = variance;
     calc_stddev(variance);
   }
+
+  // vec_t get_mean() override {return mean_;}
+
+  // vec_t get_variance() override {return variance_;}
 
   float_t epsilon() const { return eps_; }
 

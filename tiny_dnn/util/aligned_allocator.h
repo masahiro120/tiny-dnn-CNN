@@ -19,7 +19,7 @@
 #include <mm_malloc.h>
 #endif
 
-#include "tiny_dnn/util/nn_error.h"
+#include "../util/nn_error.h"
 
 namespace tiny_dnn {
 

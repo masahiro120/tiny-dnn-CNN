@@ -9,7 +9,7 @@
 
 #include <vector>
 
-#include "tiny_dnn/core/kernels/fully_connected_op_internal.h"
+#include "../../core/kernels/fully_connected_op_internal.h"
 
 namespace tiny_dnn {
 namespace kernels {

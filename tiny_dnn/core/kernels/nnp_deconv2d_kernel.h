@@ -9,7 +9,7 @@
 
 #include <vector>
 
-#include "tiny_dnn/core/params/deconv_params.h"
+#include "../../core/params/deconv_params.h"
 
 #ifdef CNN_USE_NNPACK
 #include <nnpack.h>
