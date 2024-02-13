@@ -19,8 +19,8 @@
 #include "../half.hpp"
 #include "../half_define.h"
 
-// #define BATCH_NORM_F_HALF 1
-// #define BATCH_NORM_B_HALF 1
+extern int BATCH_NORM_F_HALF;
+extern int BATCH_NORM_B_HALF;
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
@@ -30,6 +30,7 @@ void moments_half(const std::vector<std::vector<half>> &in, size_t spatial_dim, 
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
 void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<std::vector<std::vector<half>>> array_half);
 
+extern int batch_count;
 
 namespace tiny_dnn {
 
@@ -403,6 +404,24 @@ class batch_normalization_layer : public layer {
         out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
     }
 
+    batch_count++;
+    if (batch_count == 5) {
+      batch_count = 1;
+    }
+    // std::cout << batch_count << " Before Batch Normalization" << std::endl;
+    // for (size_t i = 0; i < 10; ++i) {
+    //   for (size_t j = 0; j < 2; ++j) {
+    //     std::cout << in_data_val[0][i][j] << std::endl;
+    //   }
+    // }
+    // std::cout << "mean_ = " << mean_[0] << std::endl;
+    // std::cout << "variance_ = " << variance_[0] << std::endl;
+    // std::cout << "stddev_ = " << stddev_[0] << std::endl << std::endl;
+    // std::cout << "mean_current_ = " << mean_current_[0] << std::endl;
+    // std::cout << "variance_current_ = " << variance_current_[0] << std::endl;
+    // std::cout << "tmp_mean_ = " << tmp_mean_[0] << std::endl;
+    // std::cout << std::endl;
+
     // 変換関数を呼び出します。
     std::vector<std::vector<std::vector<half>>> in_data_half = three_vector_to_half(in_data_val);
     std::vector<std::vector<std::vector<half>>> out_data_half = three_vector_to_half(out_data_val);
@@ -457,6 +476,22 @@ class batch_normalization_layer : public layer {
     for (size_t i = 0; i < out_data.size(); ++i) {
         *(out_data[i]) = out_data_val[i]; // ポインタのデリファレンス
     }
+
+    // std::cout << "After Batch Normalization" << std::endl;
+    // for (size_t i = 0; i < 10; i++) {
+    //   for (size_t j = 0; j < 2; j++) {
+    //     std::cout << out_data_val[0][i][j] << std::endl;
+    //   }
+    // }
+
+    // std::cout << "mean_ = " << mean_[0] << std::endl;
+    // std::cout << "variance_ = " << variance_[0] << std::endl;
+    // std::cout << "stddev_ = " << stddev_[0] << std::endl << std::endl;
+    // std::cout << "mean_current_ = " << mean_current_[0] << std::endl;
+    // std::cout << "variance_current_ = " << variance_current_[0] << std::endl;
+    // std::cout << "tmp_mean_ = " << tmp_mean_[0] << std::endl;
+    // std::cout << std::endl;
+    // std::cout << std::endl;
 
 #endif
   }

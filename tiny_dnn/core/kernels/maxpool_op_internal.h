@@ -10,8 +10,8 @@
 #include <limits>
 #include <vector>
 
-// #define MAX_POOLING_F_HALF 1
-// #define MAX_POOLING_B_HALF 1
+extern int MAX_POOLING_F_HALF;
+extern int MAX_POOLING_B_HALF;
 
 #include "../../half.hpp"
 #include "../../half_define.h"

@@ -32,7 +32,7 @@
 
 using namespace half_float;
 
-// #define LOSS_HALF 1
+extern int LOSS_HALF;
 
 std::vector<std::vector<std::vector<half>>> three_vector_to_half(const std::vector<tiny_dnn::tensor_t>& array);
 void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<std::vector<std::vector<half>>> array_half);

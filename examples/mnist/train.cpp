@@ -27,6 +27,36 @@ using namespace std;
 // extern std::vector<tiny_dnn::label_t> train_labels_data;
 // extern std::vector<int> num_list;
 
+int batch_count = 0;
+
+int CONV_F_HALF = 0;
+int CONV_B_HALF = 0;
+
+int FC_F_HALF = 0;
+int FC_B_HALF = 0;
+
+int MAX_POOLING_F_HALF = 0;
+int MAX_POOLING_B_HALF = 0;
+
+int RELU_F_HALF = 0;
+int RELU_B_HALF = 0;
+
+int SOFTMAX_F_HALF = 0;
+// 要確認
+int SOFTMAX_B_HALF = 1;
+
+int DROP_OUT_F_HALF = 0;
+int DROP_OUT_B_HALF = 0;
+
+// 要確認
+int BATCH_NORM_F_HALF = 0;
+
+int BATCH_NORM_B_HALF = 0;
+
+// 要確認
+int LOSS_HALF = 0;
+
+int MARGE_HALF = 0;
 
 static void construct_net(tiny_dnn::network<tiny_dnn::sequential> &nn,
                           tiny_dnn::core::backend_t backend_type) {
@@ -85,7 +115,8 @@ static void train_lenet(const std::string &data_dir_path,
                         double learning_rate,
                         const int n_train_epochs,
                         const int n_minibatch,
-                        tiny_dnn::core::backend_t backend_type) {
+                        tiny_dnn::core::backend_t backend_type,
+                        int num_images) {
 
 
   // specify loss-function and learning strategy
@@ -125,14 +156,17 @@ static void train_lenet(const std::string &data_dir_path,
   // }
 
   
-  int classes = 43;
-  int data_per_class = 80;
+  // int classes = 43;
+  // int data_per_class = 80;
+  // int image_num = classes * data_per_class;
+  int image_num = num_images;
+  // int image_num = 80;
 
   // シャッフル
-  std::vector<tiny_dnn::vec_t> train_images(data_per_class * classes / 2 * 0.8);
-  std::vector<tiny_dnn::vec_t> test_images(data_per_class * classes / 2 * 0.2);
-  std::vector<tiny_dnn::label_t> train_labels(data_per_class * classes / 2 * 0.8);
-  std::vector<tiny_dnn::label_t> test_labels(data_per_class * classes / 2 * 0.2);
+  std::vector<tiny_dnn::vec_t> train_images(image_num / 2 * 0.8);
+  std::vector<tiny_dnn::vec_t> test_images(image_num / 2 * 0.2);
+  std::vector<tiny_dnn::label_t> train_labels(image_num / 2 * 0.8);
+  std::vector<tiny_dnn::label_t> test_labels(image_num / 2 * 0.2);
   // std::random_device seed_gen;
   // std::mt19937 engine(seed_gen());
 
@@ -141,13 +175,13 @@ static void train_lenet(const std::string &data_dir_path,
 
   std::vector<int> num_list;
 
-  for (int i=0; i< data_per_class * classes; i++) num_list.push_back(i);
+  for (int i=0; i< image_num; i++) num_list.push_back(i);
   std::shuffle(num_list.begin(), num_list.end(), engine);
 
   int test_index = 0;
   int train_index = 0;
 
-  for(int i = 0; i < data_per_class * classes / 2; i++){
+  for(int i = 0; i < image_num / 2; i++){
     // printf("i: %d\n", i);
     // printf("num_list[i]: %d\n", num_list[i]);
     if (i % 5 == 0){
@@ -259,8 +293,9 @@ static void usage(const char *argv0) {
 int main(int argc, char **argv) {
   double learning_rate                   = 1;
   int epochs                             = 30;
-  std::string data_path                  = "";
+  std::string data_path                  = "../../data";
   int minibatch_size                     = 16;
+  int num_images                         = 43 * 80;
   tiny_dnn::core::backend_t backend_type = tiny_dnn::core::default_engine();
 
 
@@ -283,6 +318,8 @@ int main(int argc, char **argv) {
       backend_type = parse_backend_name(argv[count + 1]);
     } else if (argname == "--data_path") {
       data_path = std::string(argv[count + 1]);
+    } else if (argname == "--num_images") {
+      num_images = atoi(argv[count + 1]);
     } else {
       std::cerr << "Invalid parameter specified - \"" << argname << "\""
                 << std::endl;
@@ -322,7 +359,7 @@ int main(int argc, char **argv) {
             << "Backend type: " << backend_type << std::endl
             << std::endl;
   try {
-    train_lenet(data_path, learning_rate, epochs, minibatch_size, backend_type);
+    train_lenet(data_path, learning_rate, epochs, minibatch_size, backend_type, num_images);
   } catch (tiny_dnn::nn_error &err) {
     std::cerr << "Exception: " << err.what() << std::endl;
   }

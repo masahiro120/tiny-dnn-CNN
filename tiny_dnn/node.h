@@ -32,7 +32,7 @@
 
 using namespace half_float;
 
-// #define MARGE_HALF 0
+extern int MARGE_HALF;
 
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
 

@@ -16,8 +16,8 @@ using half_float::half;
 #define F_CHECK 0
 #define B_CHECK 0
 
-// #define CONV_F_HALF 1
-// #define CONV_B_HALF 1
+extern int CONV_F_HALF;
+extern int CONV_B_HALF;
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
@@ -35,7 +35,13 @@ inline void conv2d_op_internal(const tensor_t &in_data,
 
   // printf("conv forward\n");
 #if CONV_F_HALF == 0
-
+  // std::cout << std::endl;
+  // for (size_t i = 0; i < 10; i++) {
+  //   std::cout << "in_data[" << i << "] = " << in_data[0][i] << std::endl;
+  // }
+  // std::cout << "W[0] = " << W[0] << std::endl;
+  // std::cout << "bias[0] = " << bias[0] << std::endl;
+  // std::cout << std::endl;
 #if F_CHECK == 1
   tensor_t in_data_check(in_data.size(), vec_t(params.in.depth_ * params.in_padded.area()));
   for (size_t sample = 0; sample < in_data.size(); sample++) {
@@ -116,6 +122,54 @@ inline void conv2d_op_internal(const tensor_t &in_data,
              }
            }
          }
+
+        // 畳み込み演算のための関数
+        // 以下の部分は、conv2d_op_internal関数内の畳み込み演算部分の修正例です。
+
+        // for (size_t sample = r.begin(); sample < r.end(); sample++) {
+        //   const vec_t &in = in_data[sample];
+        //   vec_t &a        = out_data[sample];
+        //   for (size_t o = 0; o < od; o++) {
+        //     float_t *pa = &a[params.out.get_index(0, 0, o)];
+        //     for (size_t inc = 0; inc < id; inc++) {
+        //       if (!params.tbl.is_connected(o, inc)) continue;
+        //       size_t idx                = params.weight.get_index(0, 0, id * o + inc);
+        //       const float_t *pw         = &W[idx];
+        //       idx                       = params.in_padded.get_index(0, 0, inc);
+        //       const float_t *pin        = &in[idx];
+        //       float_t *pout             = pa;
+        //       for (size_t y = 0; y < oh; y++) {
+        //         const float_t *pin_line = pin;
+        //         for (size_t x = 0; x < ow; x++) {
+        //           const float_t *pin_element = pin_line;
+        //           const float_t *pw_element  = pw;
+        //           float_t sum{0};
+        //           // 小さい値から順に加算するように順序を最適化
+        //           std::vector<float_t> temp_sums;
+        //           for (size_t wy = 0; wy < kh; wy++) {
+        //             for (size_t wx = 0; wx < kw; wx++) {
+        //               temp_sums.push_back(pw_element[wx] * pin_element[wx * w_dilation]);
+        //             }
+        //             pw_element += kw;
+        //             pin_element += iw * h_dilation;
+        //           }
+        //           // 小さい値から順に加算して誤差を最小限に抑える
+        //           std::sort(temp_sums.begin(), temp_sums.end(), [](float_t a, float_t b) { return std::abs(a) < std::abs(b); });
+        //           for (auto val : temp_sums) {
+        //             sum += val;
+        //           }
+        //           pout[x] += sum;
+        //           pin_line += elem_stride;
+        //         }
+        //         pout += ow;
+        //         pin += line_stride;
+        //       }
+        //     }
+        //     if (params.has_bias) {
+        //       vectorize::add(bias[o], out_area, pa);
+        //     }
+        //   }
+        // }
        },
        0u);
 
@@ -202,7 +256,11 @@ inline void conv2d_op_internal(const tensor_t &in_data,
   // 実行停止
   std::exit(0);
 #endif
-
+  // std::cout << std::endl;
+  // for (size_t i = 0; i < 10; i++) {
+  //   std::cout << "out_data[" << i << "] = " << out_data[0][i] << std::endl;
+  // }
+  // std::cout << std::endl;
 #else
   std::vector<std::vector<half>> in_data_half = two_vector_to_half(in_data);
   std::vector<half> W_half = one_vector_to_half(W);

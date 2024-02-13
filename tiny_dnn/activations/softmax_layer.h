@@ -13,8 +13,8 @@
 #include "../activations/activation_layer.h"
 #include "../layers/layer.h"
 
-// #define SOFTMAX_F_HALF 1
-// #define SOFTMAX_B_HALF 1
+extern int SOFTMAX_F_HALF;
+extern int SOFTMAX_B_HALF;
 
 #include "../half.hpp"
 #include "../half_define.h"
