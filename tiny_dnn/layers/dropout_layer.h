@@ -129,12 +129,12 @@ class dropout_layer : public layer {
     CNN_UNREFERENCED_PARAMETER(in_data);
     CNN_UNREFERENCED_PARAMETER(out_data);
 
-    for_i(in_grad_val[0].size(), [&](size_t sample) {
+    for_i(in_grad_half[0].size(), [&](size_t sample) {
       // assert(prev_delta[sample].size() == curr_delta[sample].size());
       // assert(mask_[sample].size() == prev_delta[sample].size());
-      size_t sz = in_grad_val[0][sample].size();
+      size_t sz = in_grad_half[0][sample].size();
       for (size_t i = 0; i < sz; ++i) {
-        in_grad_val[0][sample][i] = mask_[sample][i] * out_grad_val[0][sample][i];
+        in_grad_half[0][sample][i] = mask_[sample][i] * out_grad_half[0][sample][i];
       }
     });
 
@@ -144,6 +144,12 @@ class dropout_layer : public layer {
         *(in_grad[i]) = in_grad_val[i]; // ポインタのデリファレンス
     }
 #endif
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   void forward_propagation(const std::vector<tensor_t *> &in_data,
@@ -267,6 +273,10 @@ class dropout_layer : public layer {
     }
 
 #endif
+  }
+
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
   }
 
   /**

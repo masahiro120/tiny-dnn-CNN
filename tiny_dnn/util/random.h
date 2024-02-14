@@ -14,6 +14,9 @@
 #include "../config.h"
 #include "../util/nn_error.h"
 
+#include "../half.hpp"
+using namespace half_float;
+
 namespace tiny_dnn {
 
 class random_generator {
@@ -70,6 +73,17 @@ inline bool bernoulli(float_t p) {
 
 template <typename Iter>
 void uniform_rand(Iter begin, Iter end, float_t min, float_t max) {
+  for (Iter it = begin; it != end; ++it) *it = uniform_rand(min, max);
+}
+
+inline half_float::half uniform_rand(half_float::half min, half_float::half max) {
+  std::mt19937 mt(123); // ここで特定のシード値を使用
+  std::uniform_real_distribution<float> dist(static_cast<float>(min), static_cast<float>(max));
+  return static_cast<half_float::half>(dist(mt));
+}
+
+template <typename Iter>
+void uniform_rand(Iter begin, Iter end, half min, half max) {
   for (Iter it = begin; it != end; ++it) *it = uniform_rand(min, max);
 }
 

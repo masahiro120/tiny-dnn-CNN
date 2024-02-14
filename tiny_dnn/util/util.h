@@ -52,6 +52,9 @@
 #endif
 #endif
 
+#include "../half.hpp"
+using half_float::half;
+
 namespace tiny_dnn {
 
 ///< output label(class-index) for classification
@@ -63,7 +66,12 @@ typedef size_t layer_size_t;  // for backward compatibility
 
 typedef std::vector<float_t, aligned_allocator<float_t, 64>> vec_t;
 
+// typedef std::vector<half_float::half> vec16_t;
+typedef std::vector<half_float::half, aligned_allocator<half_float::half, 16>> vec16_t;
+
 typedef std::vector<vec_t> tensor_t;
+
+typedef std::vector<vec16_t> tensor16_t;
 
 template <typename T>
 using xtensor_t = xt::xexpression<T>;
@@ -320,7 +328,19 @@ inline void fill_tensor(tensor_t &tensor, float_t value) {
   }
 }
 
+inline void fill_tensor(tensor16_t &tensor, half value) {
+  for (auto &t : tensor) {
+    vectorize::fill(&t[0], t.size(), value);
+  }
+}
+
 inline void fill_tensor(tensor_t &tensor, float_t value, size_t size) {
+  for (auto &t : tensor) {
+    t.resize(size, value);
+  }
+}
+
+inline void fill_tensor(tensor16_t &tensor, half value, size_t size) {
   for (auto &t : tensor) {
     t.resize(size, value);
   }

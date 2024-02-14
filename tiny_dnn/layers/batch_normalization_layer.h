@@ -273,6 +273,12 @@ class batch_normalization_layer : public layer {
 #endif
   }
 
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
+  }
+
   void forward_propagation(const std::vector<tensor_t *> &in_data,
                            std::vector<tensor_t *> &out_data) override {
 #if BATCH_NORM_F_HALF == 0
@@ -671,6 +677,10 @@ class batch_normalization_layer : public layer {
 #endif
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   void set_context(net_phase ctx) override { phase_ = ctx; }
 
   std::string layer_type() const override { return "batch-norm"; }
@@ -682,6 +692,16 @@ class batch_normalization_layer : public layer {
       
       variance_[i] = (variance_[i] == 0) ? variance_current_[i]
           : momentum_ * variance_[i] + (1 - momentum_) * variance_current_[i];
+    }
+  }
+
+  void post_update16() override {
+    for (size_t i = 0; i < mean_16_.size(); i++) {
+      mean_16_[i] = (mean_16_[i] == half(0)) ? mean_current_16_[i]
+          : momentum_16_ * mean_16_[i] + (half(1) - momentum_16_) * mean_current_16_[i];
+      
+      variance_16_[i] = (variance_16_[i] == half(0)) ? variance_current_16_[i]
+          : momentum_16_ * variance_16_[i] + (half(1) - momentum_16_) * variance_current_16_[i];
     }
   }
 
@@ -743,6 +763,13 @@ class batch_normalization_layer : public layer {
     variance_.resize(in_channels_);
     tmp_mean_.resize(in_channels_);
     stddev_.resize(in_channels_);
+
+    mean_current_16_.resize(in_channels_);
+    mean_16_.resize(in_channels_);
+    variance_current_16_.resize(in_channels_);
+    variance_16_.resize(in_channels_);
+    tmp_mean_16_.resize(in_channels_);
+    stddev_16_.resize(in_channels_);
   }
 
   size_t in_channels_;
@@ -752,16 +779,28 @@ class batch_normalization_layer : public layer {
   float_t momentum_;
   float_t eps_;
 
+  half momentum_16_;
+  half eps_16_;
+
   // mean/variance for this mini-batch
   vec_t mean_current_;
   vec_t variance_current_;
 
   vec_t tmp_mean_;
 
+  vec16_t mean_current_16_;
+  vec16_t variance_current_16_;
+
+  vec16_t tmp_mean_16_;
+
   // moving average of mean/variance
   vec_t mean_;
   vec_t variance_;
   vec_t stddev_;
+
+  vec16_t mean_16_;
+  vec16_t variance_16_;
+  vec16_t stddev_16_;
 
   // for test
   bool update_immidiately_;

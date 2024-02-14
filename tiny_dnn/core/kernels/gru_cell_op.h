@@ -66,6 +66,9 @@ class GRUCellOp : public core::OpKernel {
     }
     s = out;  // copy layer output to state
   }
+
+  void compute16(core::OpKernelContext &context) override {
+  }
 };
 
 }  // namespace tiny_dnn

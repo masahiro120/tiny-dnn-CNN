@@ -96,6 +96,8 @@ class edge {
       vtype_(vtype),
       data_({vec_t(shape.size())}),
       grad_({vec_t(shape.size())}),
+      data_16_({vec16_t(shape.size())}),
+      grad_16_({vec16_t(shape.size())}),
       prev_(prev) {}
 
   void merge_grads(vec_t *dst) {
@@ -170,6 +172,25 @@ class edge {
 #endif
   }
 
+  void merge_grads(vec16_t *dst) {
+    assert(!grad_16_.empty());
+    const auto &grad_head = grad_16_[0];
+    size_t sz             = grad_head.size();
+    dst->resize(sz);
+    half *pdst = &(*dst)[0];
+    // dst = grad_16_[0]
+    std::copy(grad_head.begin(), grad_head.end(), pdst);
+    // @todo consider adding parallelism
+    for (size_t sample = 1, sample_count = grad_16_.size(); sample < sample_count;
+         ++sample) {
+      // dst += grad_16_[sample]
+      // vectorize::reduce<half>(&grad_16_[sample][0], sz, pdst);
+      for (size_t i = 0; i < sz; i++) {
+        pdst[i] += grad_16_[sample][i];
+      }
+    }
+  }
+
   void clear_grads() {
     for (size_t sample = 0, sample_count = grad_.size(); sample < sample_count;
          ++sample) {
@@ -178,7 +199,17 @@ class edge {
     }
   }
 
+  void clear_grads16() {
+    for (size_t sample = 0, sample_count = grad_16_.size(); sample < sample_count;
+         ++sample) {
+      auto &g = grad_16_[sample];
+      vectorize::fill(&g[0], g.size(), half{0});
+    }
+  }
+
   tensor_t *get_data() { return &data_; }
+  
+  tensor16_t *get_data16() { return &data_16_; }
 
   //自分で作成
   // void *set_data(tensor_t w) {data_ = w;}
@@ -189,10 +220,16 @@ class edge {
   }
 
   const tensor_t *get_data() const { return &data_; }
+  
+  const tensor16_t *get_data16() const { return &data_16_; }
 
   tensor_t *get_gradient() { return &grad_; }
 
+  tensor16_t *get_gradient16() { return &grad_16_; }
+
   const tensor_t *get_gradient() const { return &grad_; }
+
+  const tensor16_t *get_gradient16() const { return &grad_16_; }
 
   const std::vector<node *> &next() const { return next_; }
   node *prev() { return prev_; }
@@ -207,6 +244,8 @@ class edge {
   vector_type vtype_;
   tensor_t data_;
   tensor_t grad_;
+  tensor16_t data_16_;
+  tensor16_t grad_16_;
   node *prev_;                // previous node, "producer" of this tensor
   std::vector<node *> next_;  // next nodes, "consumers" of this tensor
 };

@@ -72,11 +72,21 @@ class quantized_fully_connected_layer : public layer {
     }
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   void back_propagation(const std::vector<tensor_t *> &in_data,
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
                         std::vector<tensor_t *> &in_grad) override {
     layer::backend_->fully_q(in_data, out_data, out_grad, in_grad);
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   std::string layer_type() const override { return "q_fully-connected"; }

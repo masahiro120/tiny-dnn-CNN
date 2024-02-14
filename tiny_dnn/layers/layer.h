@@ -233,6 +233,23 @@ class layer : public node {
     }
   }
 
+  void set_out_grads(const std::vector<const vec16_t *> *grad, size_t cnt) {
+    CNN_UNREFERENCED_PARAMETER(cnt);
+    size_t n = 0;
+    for (size_t i = 0; i < out_channels_; i++) {
+      if (out_type_[i] != vector_type::data) continue;
+      tensor16_t &dst_grad = *ith_out_node(i)->get_gradient16();
+      assert(n < cnt);
+      const auto &src_grad = grad[n++];
+      size_t sz            = src_grad.size();
+      dst_grad.resize(sz);
+      for (size_t j = 0; j < sz; ++j) {
+        assert(dst_grad[j].size() == src_grad[j]->size());
+        dst_grad[j] = *src_grad[j];
+      }
+    }
+  }
+
   void set_in_data(const std::vector<const vec_t *> *data, size_t cnt) {
     CNN_UNREFERENCED_PARAMETER(cnt);
     size_t n = 0;
@@ -256,11 +273,43 @@ class layer : public node {
     }
   }
 
+  void set_in_data(const std::vector<const vec16_t *> *data, size_t cnt) {
+    CNN_UNREFERENCED_PARAMETER(cnt);
+    size_t n = 0;
+    for (size_t i = 0; i < in_channels_; i++) {
+      if (in_type_[i] != vector_type::data) continue;
+      tensor16_t &dst_data = *ith_in_node(i)->get_data16();
+      size_t in_size     = ith_in_node(i)->shape().size();
+      assert(n < cnt);
+      const auto &src_data = data[n++];
+      size_t sz            = src_data.size();
+      dst_data.resize(sz);
+
+      CNN_UNREFERENCED_PARAMETER(in_size);
+
+      for (size_t j = 0; j < sz; ++j) {
+        assert(
+          src_data[j]->size() ==
+          in_size);  // checking if training data is consistent with layer shape
+        dst_data[j] = *src_data[j];
+      }
+    }
+  }
+
   void output(std::vector<const tensor_t *> &out) const {
     out.clear();
     for (size_t i = 0; i < out_channels_; i++) {
       if (out_type_[i] == vector_type::data) {
         out.push_back(ith_out_node(i)->get_data());
+      }
+    }
+  }
+
+  void output(std::vector<const tensor16_t *> &out) const {
+    out.clear();
+    for (size_t i = 0; i < out_channels_; i++) {
+      if (out_type_[i] == vector_type::data) {
+        out.push_back(ith_out_node(i)->get_data16());
       }
     }
   }
@@ -423,6 +472,9 @@ class layer : public node {
   virtual void forward_propagation(const std::vector<tensor_t *> &in_data,
                                    std::vector<tensor_t *> &out_data) = 0;
 
+  virtual void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                                     std::vector<tensor16_t *> &out_data) = 0;
+
   /**
    * return delta of previous layer (delta=\frac{dE}{da}, a=wx in
    *fully-connected layer)
@@ -438,6 +490,11 @@ class layer : public node {
                                 std::vector<tensor_t *> &out_grad,
                                 std::vector<tensor_t *> &in_grad) = 0;
 
+  virtual void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                                  const std::vector<tensor16_t *> &out_data,
+                                  std::vector<tensor16_t *> &out_grad,
+                                  std::vector<tensor16_t *> &in_grad) = 0;
+
   /**
    * return delta2 of previous layer (delta2=\frac{d^2E}{da^2}, diagonal of
    *hessian matrix)
@@ -448,6 +505,7 @@ class layer : public node {
 
   // called afrer updating weight
   virtual void post_update() {}
+  virtual void post_update16() {}
 
   /**
    * notify changing context (train <=> test)
@@ -560,6 +618,36 @@ class layer : public node {
     forward_propagation(fwd_in_data_, fwd_out_data_);
   }
 
+  void forward16() {
+    // the computational graph
+    fwd_in_data_16_.resize(in_channels_);
+    fwd_out_data_16_.resize(out_channels_);
+
+    // Organize input/output vectors from storage (computational graph).
+    // Internally ith_in_node() will create a connection/edge in the
+    // computational graph and will allocate memory in case that it's not
+    // done yet.
+    for (size_t i = 0; i < in_channels_; i++) {
+      fwd_in_data_16_[i] = ith_in_node(i)->get_data16();
+    }
+
+    // resize outs and stuff to have room for every input sample in
+    // the batch
+    set_sample_count16(fwd_in_data_16_[0]->size());
+
+    // Internally ith_out_node() will create a connection/edge to the
+    // computational graph and will allocate memory in case that it's not
+    // done yet. In addition, gradient vector are initialized to default
+    // values.
+    for (size_t i = 0; i < out_channels_; i++) {
+      fwd_out_data_16_[i] = ith_out_node(i)->get_data16();
+      ith_out_node(i)->clear_grads16();
+    }
+
+    // call the forward computation kernel/routine
+    forward_propagation16(fwd_in_data_16_, fwd_out_data_16_);
+  }
+
   void backward() {
     bwd_in_data_.resize(in_channels_);
     bwd_in_grad_.resize(in_channels_);
@@ -578,6 +666,26 @@ class layer : public node {
       bwd_out_grad_[i] = nd->get_gradient();
     }
     back_propagation(bwd_in_data_, bwd_out_data_, bwd_out_grad_, bwd_in_grad_);
+  }
+
+  void backward16() {
+    bwd_in_data_16_.resize(in_channels_);
+    bwd_in_grad_16_.resize(in_channels_);
+    bwd_out_data_16_.resize(out_channels_);
+    bwd_out_grad_16_.resize(out_channels_);
+
+    // organize input/output vectors from storage
+    for (size_t i = 0; i < in_channels_; i++) {
+      const auto &nd  = ith_in_node(i);
+      bwd_in_data_16_[i] = nd->get_data16();
+      bwd_in_grad_16_[i] = nd->get_gradient16();
+    }
+    for (size_t i = 0; i < out_channels_; i++) {
+      const auto &nd   = ith_out_node(i);
+      bwd_out_data_16_[i] = nd->get_data16();
+      bwd_out_grad_16_[i] = nd->get_gradient16();
+    }
+    back_propagation16(bwd_in_data_16_, bwd_out_data_16_, bwd_out_grad_16_, bwd_in_grad_16_);
   }
 
   /* @brief Allocates data in the computational graph and reset weights if
@@ -616,6 +724,38 @@ class layer : public node {
     // still not initialized.
     if (reset_weight || !initialized_) {
       init_weight();
+    }
+  }
+
+  void setup16(bool reset_weight) {
+    // The input shape (width x height x depth) must be equal to the number
+    // of input channels a.k.a the number of incoming vectors or 'edges' in
+    // the computational nomenclature. Same is applied to output shape and
+    // numbers of output edges.
+    if (in_shape().size() != in_channels_ ||
+        out_shape().size() != out_channels_) {
+      throw nn_error("Connection mismatch at setup layer");
+    }
+
+    // An 'edge' is created in the computational graph from the current
+    // layer/node to each output node and allocates the needed memory.
+    // The number of output nodes is determined by the layer interface.
+    // In order to handle graph based networks, which a layer/node might
+    // have multiple input/output connections, we need to check that the
+    // connection edge does not already exists if we don't want duplicated
+    // memory allocation.
+    for (size_t i = 0; i < out_channels_; i++) {
+      if (!next_[i]) {
+        // connection edge doesn't exist, so we proceed to allocate the
+        // necessary memory.
+        next_[i] = std::make_shared<edge>(this, out_shape()[i], out_type_[i]);
+      }
+    }
+
+    // reset the weights if necessary, or in case that the data is
+    // still not initialized.
+    if (reset_weight || !initialized_) {
+      init_weight16();
     }
   }
 
@@ -660,9 +800,47 @@ class layer : public node {
     initialized_ = true;
   }
 
+  void init_weight16() {
+    // layer/node is not trainable, do nothing and mark the layer/node
+    // as initialized.
+    if (!trainable_) {
+      initialized_ = true;
+      return;
+    }
+
+    // Fill vector values with data generated by the initialization
+    // function. The pointer to the data is obtained from the
+    // computational graph and the methods fan_in_size() and fan_out_size()
+    // return the number of incoming/outcoming connections for each
+    // input/output unit.
+    for (size_t i = 0; i < in_channels_; i++) {
+      switch (in_type_[i]) {
+        // fill vectors of weight type
+        case vector_type::weight:
+          weight_init_->fill16(get_weight_data16(i), fan_in_size(i),
+                             fan_out_size(i));
+          break;
+        // fill vector of bias type
+        case vector_type::bias:
+          bias_init_->fill16(get_weight_data16(i), fan_in_size(i), fan_out_size(i));
+          break;
+        default: break;
+      }
+    }
+    // in case we succeed with data initialization, we mark the
+    // layer/node as initialized.
+    initialized_ = true;
+  }
+
   void clear_grads() {
     for (size_t i = 0; i < in_type_.size(); i++) {
       ith_in_node(i)->clear_grads();
+    }
+  }
+
+  void clear_grads16() {
+    for (size_t i = 0; i < in_type_.size(); i++) {
+      ith_in_node(i)->clear_grads16();
     }
   }
 
@@ -685,6 +863,27 @@ class layer : public node {
     }
     clear_grads();
     post_update();
+  }
+
+  void update_weight16(optimizer *o) {
+    auto &diff = weights_diff_16_;
+    for (size_t i = 0; i < in_type_.size(); i++) {
+      if (trainable() && is_trainable_weight(in_type_[i])) {
+        vec16_t &target = *get_weight_data16(i);
+        ith_in_node(i)->merge_grads(&diff);
+        half rcp_batch_size =
+          half(1.0) / half(ith_in_node(i)->get_data16()->size());
+        for (size_t j = 0; j < diff.size(); ++j) {
+          diff[j] *= rcp_batch_size;
+        }
+        // parallelize only when target size is big enough to mitigate
+        // thread spawning overhead.
+        bool parallelize = (target.size() >= 512);
+        o->update16(diff, target, parallelize);
+      }
+    }
+    clear_grads16();
+    post_update16();
   }
 
   bool has_same_weights(const layer &rhs, float_t eps) const {
@@ -723,6 +922,27 @@ class layer : public node {
     }
   }
 
+  virtual void set_sample_count16(size_t sample_count) {
+    // increase the size if necessary - but do not decrease
+    auto resize = [sample_count](tensor16_t *tensor) {
+      tensor->resize(sample_count, (*tensor)[0]);
+    };
+
+    for (size_t i = 0; i < in_channels_; i++) {
+      if (!is_trainable_weight(in_type_[i])) {
+        resize(ith_in_node(i)->get_data16());
+      }
+      resize(ith_in_node(i)->get_gradient16());
+    }
+
+    for (size_t i = 0; i < out_channels_; i++) {
+      if (!is_trainable_weight(out_type_[i])) {
+        resize(ith_out_node(i)->get_data16());
+      }
+      resize(ith_out_node(i)->get_gradient16());
+    }
+  }
+
   /**
    * generate layer from cereal's Archive
    **/
@@ -758,6 +978,7 @@ class layer : public node {
    * frequent
    * memory allocation */
   vec_t weights_diff_;
+  vec16_t weights_diff_16_;
 
   template <typename T, typename Func>
   inline void for_i(T size, Func f, size_t grainsize = 100) {
@@ -780,6 +1001,13 @@ class layer : public node {
   std::vector<tensor_t *> bwd_in_grad_;
   std::vector<tensor_t *> bwd_out_data_;
   std::vector<tensor_t *> bwd_out_grad_;
+
+  std::vector<tensor16_t *> fwd_in_data_16_;
+  std::vector<tensor16_t *> fwd_out_data_16_;
+  std::vector<tensor16_t *> bwd_in_data_16_;
+  std::vector<tensor16_t *> bwd_in_grad_16_;
+  std::vector<tensor16_t *> bwd_out_data_16_;
+  std::vector<tensor16_t *> bwd_out_grad_16_;
 
   /* @brief Allocates the necessary edge memory in a specific
    * incoming connection.
@@ -855,6 +1083,11 @@ class layer : public node {
     return &(*(ith_in_node(i)->get_data()))[0];
   }
 
+  vec16_t *get_weight_data16(size_t i) {
+    assert(is_trainable_weight(in_type_[i]));
+    return &(*(ith_in_node(i)->get_data16()))[0];
+  }
+
   /* @brief Retrieves weight vector from incoming edge
    * @param i The position of incoming edge.
    *
@@ -863,6 +1096,11 @@ class layer : public node {
   const vec_t *get_weight_data(size_t i) const {
     assert(is_trainable_weight(in_type_[i]));
     return &(*(const_cast<layer *>(this)->ith_in_node(i)->get_data()))[0];
+  }
+
+  const vec16_t *get_weight_data16(size_t i) const {
+    assert(is_trainable_weight(in_type_[i]));
+    return &(*(const_cast<layer *>(this)->ith_in_node(i)->get_data16()))[0];
   }
 };
 
@@ -936,6 +1174,19 @@ inline void connection_mismatch(const layer &from, const layer &to) {
 }
 
 inline void data_mismatch(const layer &layer, const vec_t &data) {
+  std::ostringstream os;
+
+  os << std::endl;
+  os << "data dimension:    " << data.size() << "\n";
+  os << "network dimension: " << layer.in_data_size() << "("
+     << layer.layer_type() << ":" << layer.in_shape() << ")\n";
+
+  std::string detail_info = os.str();
+
+  throw nn_error("input dimension mismatch!" + detail_info);
+}
+
+inline void data_mismatch(const layer &layer, const vec16_t &data) {
   std::ostringstream os;
 
   os << std::endl;

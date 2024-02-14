@@ -89,6 +89,7 @@ class nodes {
    * @param worker_index : id of worker-task
    **/
   virtual void backward(const std::vector<tensor_t> &first) = 0;
+  virtual void backward(const std::vector<tensor16_t> &first) = 0;
 
   /**
    * @param first input  : data vectors
@@ -96,6 +97,10 @@ class nodes {
    **/
   virtual std::vector<tensor_t> forward(
     const std::vector<tensor_t> &first) = 0;  // NOLINT
+  
+  virtual std::vector<tensor16_t> forward(
+    const std::vector<tensor16_t> &first) = 0;  // NOLINT
+  
 
   /**
    * update weights and clear all gradients
@@ -106,12 +111,24 @@ class nodes {
     }
   }
 
+  virtual void update_weights16(optimizer *opt) {
+    for (auto l : nodes_) {
+      l->update_weight16(opt);
+    }
+  }
+
   /**
    * setup all weights, must be called before forward/backward
    **/
   virtual void setup(bool reset_weight) {
     for (auto l : nodes_) {
       l->setup(reset_weight);
+    }
+  }
+
+  virtual void setup16(bool reset_weight) {
+    for (auto l : nodes_) {
+      l->setup16(reset_weight);
     }
   }
 
@@ -188,8 +205,25 @@ class nodes {
     }
   }
 
+  void label2vec(const label_t *t, size_t num, std::vector<vec16_t> &vec) const {
+    size_t outdim = out_data_size();
+
+    vec.reserve(num);
+    for (size_t i = 0; i < num; i++) {
+      assert(t[i] < outdim);
+      vec16_t newVec(outdim, half(target_value_min())); // half型にキャストする必要があるかもしれません
+      newVec[t[i]] = half(target_value_max()); // half型にキャストする必要があるかもしれません
+      vec.push_back(newVec);
+    }
+  }
+
   void label2vec(const std::vector<label_t> &labels,
                  std::vector<vec_t> &vec) const {
+    return label2vec(&labels[0], labels.size(), vec);
+  }
+
+  void label2vec(const std::vector<label_t> &labels,
+                 std::vector<vec16_t> &vec) const {
     return label2vec(&labels[0], labels.size(), vec);
   }
 
@@ -249,6 +283,25 @@ class nodes {
     }
   }
 
+  void reorder_for_layerwise_processing(
+    const std::vector<tensor16_t> &input,
+    std::vector<std::vector<const vec16_t *>> &output) {
+    size_t sample_count  = input.size();
+    size_t channel_count = input[0].size();
+
+    output.resize(channel_count);
+    for (size_t i = 0; i < channel_count; ++i) {
+      output[i].resize(sample_count);
+    }
+
+    for (size_t sample = 0; sample < sample_count; ++sample) {
+      assert(input[sample].size() == channel_count);
+      for (size_t channel = 0; channel < channel_count; ++channel) {
+        output[channel][sample] = &input[sample][channel];
+      }
+    }
+  }
+
   template <typename T>
   void push_back_impl(T &&node, std::true_type) {  // is_rvalue_reference
     own_nodes_.push_back(
@@ -285,6 +338,18 @@ class sequential : public nodes {
     }
   }
 
+  void backward(const std::vector<tensor16_t> &first) override {
+    std::vector<std::vector<const vec16_t *>> reordered_grad;
+    reorder_for_layerwise_processing(first, reordered_grad);
+    assert(reordered_grad.size() == 1);
+
+    nodes_.back()->set_out_grads(&reordered_grad[0], 1);
+
+    for (auto l = nodes_.rbegin(); l != nodes_.rend(); l++) {
+      (*l)->backward16();
+    }
+  }
+
   std::vector<tensor_t> forward(const std::vector<tensor_t> &first) override {
     std::vector<std::vector<const vec_t *>> reordered_data;
     reorder_for_layerwise_processing(first, reordered_data);
@@ -297,6 +362,23 @@ class sequential : public nodes {
     }
 
     std::vector<const tensor_t *> out;
+    nodes_.back()->output(out);
+
+    return normalize_out(out);
+  }
+
+  std::vector<tensor16_t> forward(const std::vector<tensor16_t> &first) override {
+    std::vector<std::vector<const vec16_t *>> reordered_data;
+    reorder_for_layerwise_processing(first, reordered_data);
+    assert(reordered_data.size() == 1);
+
+    nodes_.front()->set_in_data(&reordered_data[0], 1);
+
+    for (auto l : nodes_) {
+      l->forward16();
+    }
+
+    std::vector<const tensor16_t *> out;
     nodes_.back()->output(out);
 
     return normalize_out(out);
@@ -357,6 +439,21 @@ class sequential : public nodes {
 
     return normalized_output;
   }
+
+  std::vector<tensor16_t> normalize_out(
+    const std::vector<const tensor16_t *> &out) {
+    // normalize indexing back to [sample][layer][feature]
+    std::vector<tensor16_t> normalized_output;
+
+    const size_t sample_count = out[0]->size();
+    normalized_output.resize(sample_count, tensor16_t(1));
+
+    for (size_t sample = 0; sample < sample_count; ++sample) {
+      normalized_output[sample][0] = (*out[0])[sample];
+    }
+
+    return normalized_output;
+  }
 };
 
 /**
@@ -373,6 +470,26 @@ class graph : public nodes {
     }
 
     std::vector<std::vector<const vec_t *>> reordered_grad;
+    reorder_for_layerwise_processing(out_grad, reordered_grad);
+    assert(reordered_grad.size() == output_channel_count);
+
+    for (size_t i = 0; i < output_channel_count; i++) {
+      output_layers_[i]->set_out_grads(&reordered_grad[i], 1);
+    }
+
+    for (auto l = nodes_.rbegin(); l != nodes_.rend(); l++) {
+      (*l)->backward();
+    }
+  }
+
+  void backward(const std::vector<tensor16_t> &out_grad) override {
+    size_t output_channel_count = out_grad[0].size();
+
+    if (output_channel_count != output_layers_.size()) {
+      throw nn_error("input size mismatch");
+    }
+
+    std::vector<std::vector<const vec16_t *>> reordered_grad;
     reorder_for_layerwise_processing(out_grad, reordered_grad);
     assert(reordered_grad.size() == output_channel_count);
 
@@ -406,6 +523,30 @@ class graph : public nodes {
       l->forward();
     }
     return merge_outs();
+  }
+
+  std::vector<tensor16_t> forward(const std::vector<tensor16_t> &in_data) override {
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    size_t input_data_channel_count = in_data[0].size();
+
+    if (input_data_channel_count != input_layers_.size()) {
+      throw nn_error("input size mismatch");
+    }
+
+    std::vector<std::vector<const vec16_t *>> reordered_data;
+    reorder_for_layerwise_processing(in_data, reordered_data);
+    assert(reordered_data.size() == input_data_channel_count);
+
+    for (size_t channel_index = 0; channel_index < input_data_channel_count;
+         channel_index++) {
+      input_layers_[channel_index]->set_in_data(&reordered_data[channel_index],
+                                                1);
+    }
+
+    // for (auto l : nodes_) {
+    //   l->forward();
+    // }
+    return merge_outs16();
   }
 
   void construct(const std::vector<layer *> &input,
@@ -557,6 +698,29 @@ class graph : public nodes {
       if (output_channel == 0) {
         assert(merged.empty());
         merged.resize(sample_count, tensor_t(output_channel_count));
+      }
+
+      assert(merged.size() == sample_count);
+
+      for (size_t sample = 0; sample < sample_count; ++sample) {
+        merged[sample][output_channel] = (*out[0])[sample];
+      }
+    }
+    return merged;
+  }
+
+  std::vector<tensor16_t> merge_outs16() {
+    std::vector<tensor16_t> merged;
+    std::vector<const tensor16_t *> out;
+    size_t output_channel_count = output_layers_.size();
+    for (size_t output_channel = 0; output_channel < output_channel_count;
+         ++output_channel) {
+      output_layers_[output_channel]->output(out);
+
+      size_t sample_count = out[0]->size();
+      if (output_channel == 0) {
+        assert(merged.empty());
+        merged.resize(sample_count, tensor16_t(output_channel_count));
       }
 
       assert(merged.size() == sample_count);

@@ -50,6 +50,9 @@ class RecurrentCellGradOp : public core::OpKernel {
       prev_output_delta, prev_state_delta, out_state, params,
       context.parallelize());
   }
+
+  void compute16(core::OpKernelContext &context) override {
+  }
 };
 
 }  // namespace tiny_dnn

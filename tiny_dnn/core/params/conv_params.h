@@ -13,6 +13,8 @@
 
 #include "params.h"
 
+using half_float::half;
+
 namespace tiny_dnn {
 namespace core {
 
@@ -132,6 +134,35 @@ class Conv2dPadding {
     out = buf;
   }
 
+  void copy_and_pad_input(const tensor16_t &in, tensor16_t &out) {
+    if (params_.pad_type == padding::valid) {
+      return;
+    }
+
+    tensor16_t buf(in.size());
+
+    for_i(true, buf.size(), [&](size_t sample) {
+      // alloc temporary buffer.
+      buf[sample].resize(params_.in_padded.size());
+
+      // make padded version in order to avoid corner-case in fprop/bprop
+      for (size_t c = 0; c < params_.in.depth_; c++) {
+        half *pimg = &buf[sample][params_.in_padded.get_index(
+          params_.weight.width_ / 2, params_.weight.height_ / 2, c)];
+        const half *pin = &in[sample][params_.in.get_index(0, 0, c)];
+
+        for (size_t y = 0; y < params_.in.height_; y++) {
+          std::copy(pin, pin + params_.in.width_, pimg);
+          pin += params_.in.width_;
+          pimg += params_.in_padded.width_;
+        }
+      }
+    });
+
+    // shrink buffer to output
+    out = buf;
+  }
+
   /* Applies unpadding to an input tensor given the convolution parameters
    *
    * @param in The input tensor
@@ -152,6 +183,34 @@ class Conv2dPadding {
         const float_t *pin = &delta[sample][params_.in_padded.get_index(
           params_.weight.width_ / 2, params_.weight.height_ / 2, c)];
         float_t *pdst = &buf[sample][params_.in.get_index(0, 0, c)];
+
+        for (size_t y = 0; y < params_.in.height_; y++) {
+          std::copy(pin, pin + params_.in.width_, pdst);
+          pdst += params_.in.width_;
+          pin += params_.in_padded.width_;
+        }
+      }
+    });
+
+    // shrink buffer to output
+    delta_unpadded = buf;
+  }
+
+  void copy_and_unpad_delta(const tensor16_t &delta, tensor16_t &delta_unpadded) {
+    if (params_.pad_type == padding::valid) {
+      return;
+    }
+
+    tensor16_t buf(delta.size());
+
+    for_i(true, buf.size(), [&](size_t sample) {
+      // alloc temporary buffer.
+      buf[sample].resize(params_.in.size());
+
+      for (size_t c = 0; c < params_.in.depth_; c++) {
+        const half *pin = &delta[sample][params_.in_padded.get_index(
+          params_.weight.width_ / 2, params_.weight.height_ / 2, c)];
+        half *pdst = &buf[sample][params_.in.get_index(0, 0, c)];
 
         for (size_t y = 0; y < params_.in.height_; y++) {
           std::copy(pin, pin + params_.in.width_, pdst);

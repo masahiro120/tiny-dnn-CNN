@@ -78,6 +78,13 @@ class activation_layer : public layer {
     for_i(x.size(), [&](size_t i) { forward_activation(x[i], y[i]); });
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+    const tensor16_t &x = *in_data[0];
+    tensor16_t &y       = *out_data[0];
+    // for_i(x.size(), [&](size_t i) { forward_activation(x[i], y[i]); });
+  }
+
   void back_propagation(const std::vector<tensor_t *> &in_data,
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
@@ -88,6 +95,12 @@ class activation_layer : public layer {
     const tensor_t &y  = *out_data[0];
     for_i(x.size(),
           [&](size_t i) { backward_activation(x[i], y[i], dx[i], dy[i]); });
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   std::string layer_type() const override = 0;
@@ -101,6 +114,9 @@ class activation_layer : public layer {
    * @param y  output vector (values to be assigned based on input)
    **/
   virtual void forward_activation(const vec_t &x, vec_t &y) = 0;
+  
+  virtual void forward_activation16(const vec16_t &x, vec16_t &y) = 0;
+
 
   /**
    * Populate vec_t of elements 'dx' according to gradient of activation.

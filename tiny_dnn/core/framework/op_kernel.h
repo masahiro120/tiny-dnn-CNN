@@ -61,7 +61,11 @@ class OpKernelContext {
     : in_data_(nullptr),
       out_data_(nullptr),
       out_grad_(nullptr),
-      in_grad_(nullptr) {
+      in_grad_(nullptr),
+      in_data_16_(nullptr),
+      out_data_16_(nullptr),
+      out_grad_16_(nullptr),
+      in_grad_16_(nullptr) {
     op_params_ = std::unique_ptr<OpParams>(new OpParams());
   }
 
@@ -69,6 +73,12 @@ class OpKernelContext {
                   std::vector<tensor_t *> &out_data) {
     in_data_  = const_cast<std::vector<tensor_t *> *>(&in_data);
     out_data_ = &out_data;
+  }
+
+  void set_in_out(const std::vector<tensor16_t *> &in_data,
+                  std::vector<tensor16_t *> &out_data) {
+    in_data_16_  = const_cast<std::vector<tensor16_t *> *>(&in_data);
+    out_data_16_ = &out_data;
   }
 
   void set_in_out(const std::vector<tensor_t *> &in_data,
@@ -81,18 +91,42 @@ class OpKernelContext {
     in_grad_  = &in_grad;
   }
 
+  void set_in_out(const std::vector<tensor16_t *> &in_data,
+                  const std::vector<tensor16_t *> &out_data,
+                  std::vector<tensor16_t *> &out_grad,
+                  std::vector<tensor16_t *> &in_grad) {
+    in_data_16_  = const_cast<std::vector<tensor16_t *> *>(&in_data);
+    out_data_16_ = const_cast<std::vector<tensor16_t *> *>(&out_data);
+    out_grad_16_ = &out_grad;
+    in_grad_16_  = &in_grad;
+  }
+
   tensor_t &input(const int idx) { return *(*in_data_)[idx]; }
   const tensor_t &input(const int idx) const { return *(*in_data_)[idx]; }
+
+  tensor16_t &input16(const int idx) { return *(*in_data_16_)[idx]; }
+  const tensor16_t &input16(const int idx) const { return *(*in_data_16_)[idx]; }
 
   tensor_t &output(const int idx) { return *(*out_data_)[idx]; }
   const tensor_t &output(const int idx) const { return *(*out_data_)[idx]; }
 
+  tensor16_t &output16(const int idx) { return *(*out_data_16_)[idx]; }
+  const tensor16_t &output16(const int idx) const { return *(*out_data_16_)[idx]; }
+
   tensor_t &input_grad(const int idx) { return *(*in_grad_)[idx]; }
   const tensor_t &input_grad(const int idx) const { return *(*in_grad_)[idx]; }
+
+  tensor16_t &input_grad16(const int idx) { return *(*in_grad_16_)[idx]; }
+  const tensor16_t &input_grad16(const int idx) const { return *(*in_grad_16_)[idx]; }
 
   tensor_t &output_grad(const int idx) { return *(*out_grad_)[idx]; }
   const tensor_t &output_grad(const int idx) const {
     return *(*out_grad_)[idx];
+  }
+
+  tensor16_t &output_grad16(const int idx) { return *(*out_grad_16_)[idx]; }
+  const tensor16_t &output_grad16(const int idx) const {
+    return *(*out_grad_16_)[idx];
   }
 
   void setParams(Params *params) { op_params_->params_ptr_ = params; }
@@ -123,6 +157,11 @@ class OpKernelContext {
   std::vector<tensor_t *> *out_grad_;
   std::vector<tensor_t *> *in_grad_;
 
+  std::vector<tensor16_t *> *in_data_16_;
+  std::vector<tensor16_t *> *out_data_16_;
+  std::vector<tensor16_t *> *out_grad_16_;
+  std::vector<tensor16_t *> *in_grad_16_;
+
   std::unique_ptr<OpParams> op_params_;
 };
 
@@ -135,6 +174,7 @@ class OpKernel {
   virtual ~OpKernel() {}
 
   virtual void compute(OpKernelContext &context) = 0;
+  virtual void compute16(OpKernelContext &context) = 0;
 
  protected:
   Device *device_ = nullptr;

@@ -64,6 +64,9 @@ class GRUCellGradOp : public core::OpKernel {
       params.has_bias_ ? *db_2h : dummy, d_o_next, d_s_next, d_x_prev, d_h_prev,
       h, r, z, hr, post_z, params, context.parallelize());
   }
+
+  void compute16(core::OpKernelContext &context) override {
+  }
 };
 
 }  // namespace tiny_dnn

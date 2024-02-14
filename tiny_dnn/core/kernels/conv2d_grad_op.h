@@ -20,6 +20,7 @@ class Conv2dGradOp : public core::OpKernel {
     : core::OpKernel(context) {}
 
   void compute(core::OpKernelContext &context) override {
+    // std::cout << "Conv2dGradOp::compute" << std::endl;
     auto params = OpKernel::params_->conv();
 
     // incoming/outcoming data
@@ -47,6 +48,31 @@ class Conv2dGradOp : public core::OpKernel {
     } else {
       throw nn_error("Not supported engine: " + to_string(engine));
     }
+  }
+
+  void compute16(core::OpKernelContext &context) override {
+    // std::cout << "Conv2dGradOp::compute" << std::endl;
+    auto params = OpKernel::params_->conv();
+
+    // incoming/outcoming data
+    const tensor16_t &prev_out = context.input16(0);
+    const tensor16_t &W        = context.input16(1);
+    tensor16_t &dW             = context.input_grad16(1);
+    tensor16_t &db             = context.input_grad16(2);
+    tensor16_t &prev_delta     = context.input_grad16(0);
+    tensor16_t &curr_delta     = context.output_grad16(0);
+
+    // initalize outputs
+    fill_tensor(prev_delta, half{0});
+
+    std::cout << "prev_delta.size() = " << prev_delta.size() << std::endl;
+
+    // call convolution algorithm depending
+    // on the selected engine type
+
+    const core::backend_t engine = context.engine();
+
+    kernels::conv2d_op_internal16(prev_out, W[0], dW, db, curr_delta, prev_delta, params, context.parallelize());
   }
 };
 

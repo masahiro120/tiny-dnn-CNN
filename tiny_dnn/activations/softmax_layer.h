@@ -60,6 +60,19 @@ class softmax_layer : public activation_layer {
 #endif
   }
 
+  void forward_activation16(const vec16_t &x, vec16_t &y) override {
+
+    const half alpha = *std::max_element(x.begin(), x.end());
+    half denominator(0);
+    for (size_t j = 0; j < x.size(); j++) {
+      y[j] = std::exp(x[j] - alpha);
+      denominator += y[j];
+    }
+    for (size_t j = 0; j < x.size(); j++) {
+      y[j] /= denominator;
+    }
+  }
+
   void backward_activation(const vec_t &x,
                            const vec_t &y,
                            vec_t &dx,

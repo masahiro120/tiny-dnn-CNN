@@ -71,6 +71,9 @@ class LSTMCellOp : public core::OpKernel {
       throw nn_error("Not supported engine: " + to_string(engine));
     }
   }
+
+  void compute16(core::OpKernelContext &context) override {
+  }
 };
 
 }  // namespace tiny_dnn

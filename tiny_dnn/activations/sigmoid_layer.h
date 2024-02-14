@@ -13,6 +13,9 @@
 #include "../activations/activation_layer.h"
 #include "../layers/layer.h"
 
+#include "../half.hpp"
+using namespace half_float;
+
 namespace tiny_dnn {
 
 class sigmoid_layer : public activation_layer {
@@ -24,6 +27,12 @@ class sigmoid_layer : public activation_layer {
   void forward_activation(const vec_t &x, vec_t &y) override {
     for (size_t j = 0; j < x.size(); j++) {
       y[j] = float_t(1) / (float_t(1) + std::exp(-x[j]));
+    }
+  }
+
+  void forward_activation16(const vec16_t &x, vec16_t &y) override {
+    for (size_t j = 0; j < x.size(); j++) {
+      y[j] = half(1) / (half(1) + std::exp(-x[j]));
     }
   }
 

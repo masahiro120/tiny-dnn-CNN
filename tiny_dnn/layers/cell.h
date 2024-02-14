@@ -25,12 +25,18 @@ class cell : public layer {
 
   virtual void forward_propagation(const std::vector<tensor_t *> &in_data,
                                    std::vector<tensor_t *> &out_data) = 0;
-
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                            std::vector<tensor16_t *> &out_data) override {
+  }
   virtual void back_propagation(const std::vector<tensor_t *> &in_data,
                                 const std::vector<tensor_t *> &out_data,
                                 std::vector<tensor_t *> &out_grad,
                                 std::vector<tensor_t *> &in_grad) = 0;
-
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
+  }
   virtual core::backend_t backend_type() const { return wrapper_->engine(); }
 
   virtual void init_backend(const layer *wrapper) = 0;

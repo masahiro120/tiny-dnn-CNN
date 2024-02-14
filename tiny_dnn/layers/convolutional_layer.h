@@ -298,6 +298,24 @@ class convolutional_layer : public layer {
     kernel_fwd_->compute(fwd_ctx_);
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+    // apply padding to the input tensor
+    padding_op_.copy_and_pad_input(*in_data[0], cws_.prev_out_padded_16_);
+
+    fwd_in_data_16_.resize(in_data.size());
+    std::copy(in_data.begin(), in_data.end(), fwd_in_data_16_.begin());
+    fwd_in_data_16_[0] = in_data_padded(in_data);
+
+    // forward convolutional op context
+    fwd_ctx_.set_in_out(fwd_in_data_16_, out_data);
+    fwd_ctx_.setParallelize(layer::parallelize());
+    fwd_ctx_.setEngine(layer::engine());
+
+    // launch convolutional kernel
+    kernel_fwd_->compute16(fwd_ctx_);
+  }
+
   /**
    * return delta of previous layer (delta=\frac{dE}{da}, a=wx in
    *fully-connected layer)
@@ -334,6 +352,32 @@ class convolutional_layer : public layer {
 
     // unpad deltas
     padding_op_.copy_and_unpad_delta(cws_.prev_delta_padded_, *in_grad[0]);
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
+    bwd_in_data_16_.resize(in_data.size());
+    std::copy(in_data.begin(), in_data.end(), bwd_in_data_16_.begin());
+    bwd_in_data_16_[0] = in_data_padded(in_data);
+
+    bwd_in_grad_16_.resize(in_grad.size());
+    std::copy(in_grad.begin(), in_grad.end(), bwd_in_grad_16_.begin());
+    if (params_.pad_type == padding::same) {
+      bwd_in_grad_16_[0] = &cws_.prev_delta_padded_16_;
+    }
+
+    bwd_ctx_.set_in_out(bwd_in_data_16_, out_data, out_grad, bwd_in_grad_16_);
+    bwd_ctx_.setParams(&params_);
+    bwd_ctx_.setParallelize(layer::parallelize());
+    bwd_ctx_.setEngine(layer::engine());
+
+    // launch convolutional kernel
+    kernel_back_->compute16(bwd_ctx_);
+
+    // unpad deltas
+    padding_op_.copy_and_unpad_delta(cws_.prev_delta_padded_16_, *in_grad[0]);
   }
 
   void set_sample_count(size_t sample_count) override {
@@ -427,6 +471,11 @@ class convolutional_layer : public layer {
   tensor_t *in_data_padded(const std::vector<tensor_t *> &in) {
     return (params_.pad_type == padding::valid) ? in[0]
                                                 : &cws_.prev_out_padded_;
+  }
+
+  tensor16_t *in_data_padded(const std::vector<tensor16_t *> &in) {
+    return (params_.pad_type == padding::valid) ? in[0]
+                                                : &cws_.prev_out_padded_16_;
   }
 
   void conv_set_params(
@@ -551,10 +600,16 @@ class convolutional_layer : public layer {
   std::vector<tensor_t *> bwd_in_data_;
   std::vector<tensor_t *> bwd_in_grad_;
 
+  std::vector<tensor16_t *> fwd_in_data_16_;
+  std::vector<tensor16_t *> bwd_in_data_16_;
+  std::vector<tensor16_t *> bwd_in_grad_16_;
+
   /* Buffer to store padded data */
   struct conv_layer_worker_specific_storage {
     tensor_t prev_out_padded_;
     tensor_t prev_delta_padded_;
+    tensor16_t prev_out_padded_16_;
+    tensor16_t prev_delta_padded_16_;
   } cws_;
 };
 

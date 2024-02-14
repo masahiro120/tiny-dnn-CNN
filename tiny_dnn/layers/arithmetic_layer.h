@@ -59,6 +59,10 @@ class elementwise_add_layer : public layer {
     }
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   void back_propagation(const std::vector<tensor_t *> &in_data,
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
@@ -66,6 +70,12 @@ class elementwise_add_layer : public layer {
     CNN_UNREFERENCED_PARAMETER(in_data);
     CNN_UNREFERENCED_PARAMETER(out_data);
     for (size_t i = 0; i < num_args_; i++) *in_grad[i] = *out_grad[0];
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   friend struct serialization_buddy;

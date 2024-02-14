@@ -28,9 +28,9 @@
 #include "../tiny_dnn/util/util.h"
 
 #include "half.hpp"
+using namespace half_float;
 #include "half_define.h"
 
-using namespace half_float;
 
 // #define LOSS_HALF 1
 
@@ -188,6 +188,14 @@ class network {
   }
 
   template <typename E>
+  void bprop(const std::vector<vec16_t> &out,
+             const std::vector<vec16_t> &t,
+             const std::vector<vec16_t> &t_cost) {
+    bprop<E>(std::vector<tensor16_t>{out}, std::vector<tensor16_t>{t},
+             std::vector<tensor16_t>{t_cost});
+  }
+
+  template <typename E>
   void bprop(const std::vector<tensor_t> &out,
              const std::vector<tensor_t> &t,
              const std::vector<tensor_t> &t_cost) {
@@ -217,6 +225,20 @@ class network {
 
   }
 
+  template <typename E>
+  void bprop(const std::vector<tensor16_t> &out,
+             const std::vector<tensor16_t> &t,
+             const std::vector<tensor16_t> &t_cost) {
+    std::vector<tensor16_t> delta = gradient<E>(out, t, t_cost);
+
+    // deltaのサイズ
+    std::cout << "delta.size() = " << delta.size() << std::endl;
+    std::cout << "delta[0].size() = " << delta[0].size() << std::endl;
+    std::cout << "delta[0][0].size() = " << delta[0][0].size() << std::endl;
+
+    net_.backward(delta);
+  }
+
   vec_t fprop(const vec_t &in) {
     if (in.size() != (size_t)in_data_size()) data_mismatch(**net_.begin(), in);
 #if 0
@@ -230,12 +252,47 @@ class network {
 #endif
   }
 
+  vec16_t fprop(const vec16_t &in) {
+    if (in.size() != (size_t)in_data_size()) data_mismatch(**net_.begin(), in);
+#if 0
+    return fprop(std::vector<vec16_t>{ in })[0];
+#else
+    // a workaround to reduce memory consumption by skipping wrapper
+    // function
+    std::vector<tensor16_t> a(1);
+    a[0].emplace_back(in);
+    return fprop(a)[0][0];
+#endif
+  }
+
+//   vec16_t fprop(const vec16_t &in) {
+//     if (in.size() != (size_t)in_data_size()) data_mismatch(**net_.begin(), in);
+// #if 0
+//     return fprop(std::vector<vec16_t>{ in })[0];
+// #else
+//     // a workaround to reduce memory consumption by skipping wrapper
+//     // function
+//     std::vector<tensor16_t> a(1);
+//     a[0].emplace_back(in);
+//     return fprop(a)[0][0];
+// #endif
+//   }
+
   // convenience wrapper for the function below
   std::vector<vec_t> fprop(const std::vector<vec_t> &in) {
     return fprop(std::vector<tensor_t>{in})[0];
   }
 
+  std::vector<vec16_t> fprop(const std::vector<vec16_t> &in) {
+    return fprop(std::vector<tensor16_t>{in})[0];
+  }
+
   std::vector<tensor_t> fprop(const std::vector<tensor_t> &in) {
+    return net_.forward(in);
+  }
+
+  std::vector<tensor16_t> fprop(const std::vector<tensor16_t> &in) {
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     return net_.forward(in);
   }
 
@@ -248,20 +305,34 @@ class network {
     }
   }
 
+  void update_weights16(optimizer *opt) {
+    for (auto l : net_) {
+      l->update_weight16(opt);
+    }
+  }
+
   /**
    * executes forward-propagation and returns output
    **/
   vec_t predict(const vec_t &in) { return fprop(in); }
+
+  vec16_t predict16(const vec16_t &in) { return fprop(in); }
 
   /**
    * executes forward-propagation and returns output
    **/
   tensor_t predict(const tensor_t &in) { return fprop(in); }
 
+  tensor16_t predict16(const tensor16_t &in) { return fprop(in); }
+
   /**
    * executes forward-propagation and returns output
    **/
   std::vector<tensor_t> predict(const std::vector<tensor_t> &in) {
+    return fprop(in);
+  }
+
+  std::vector<tensor16_t> predict16(const std::vector<tensor16_t> &in) {
     return fprop(in);
   }
 
@@ -286,6 +357,13 @@ class network {
     using std::begin;  // for ADL
     using std::end;
     return predict(vec_t(begin(in), end(in)));
+  }
+
+  template <typename Range>
+  vec16_t predict16(const Range &in) {
+    using std::begin;  // for ADL
+    using std::end;
+    return predict16(vec16_t(begin(in), end(in)));
   }
 
   /**
@@ -421,6 +499,33 @@ class network {
                       n_threads, t_cost_tensor);
   }
 
+  template <typename Error,
+            typename Optimizer,
+            typename OnBatchEnumerate,
+            typename OnEpochEnumerate,
+            typename T,
+            typename U>
+  bool fit16(Optimizer &optimizer,
+           const std::vector<T> &inputs,
+           const std::vector<U> &desired_outputs,
+           size_t batch_size,
+           int epoch,
+           OnBatchEnumerate on_batch_enumerate,
+           OnEpochEnumerate on_epoch_enumerate,
+           const bool reset_weights     = false,
+           const int n_threads          = CNN_TASK_SIZE,
+           const std::vector<U> &t_cost = std::vector<U>()) {
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    std::vector<tensor16_t> input_tensor, output_tensor, t_cost_tensor;
+    normalize_tensor(inputs, input_tensor);
+    normalize_tensor(desired_outputs, output_tensor);
+    if (!t_cost.empty()) normalize_tensor(t_cost, t_cost_tensor);
+
+    return fit16<Error>(optimizer, input_tensor, output_tensor, batch_size, epoch,
+                      on_batch_enumerate, on_epoch_enumerate, reset_weights,
+                      n_threads, t_cost_tensor);
+  }
+
   /**
    * @param optimizer          optimizing algorithm for training
    * @param inputs             array of input data
@@ -521,6 +626,37 @@ class network {
     return test_result;
   }
 
+  result test(const std::vector<vec16_t> &in, const std::vector<label_t> &t) {
+    result test_result;
+    set_netphase(net_phase::test);
+    for (size_t i = 0; i < in.size(); i++) {
+    // for_i(in.size(), [&](size_t i) {
+      const label_t predicted = fprop_max_index(in[i]);
+      const label_t actual    = t[i];
+
+      if (predicted == actual) test_result.num_success++;
+      test_result.num_total++;
+      test_result.confusion_matrix[predicted][actual]++;
+    // });
+
+      // 進行状況の更新
+      float progress = (i + 1) / float(in.size());
+      int barWidth = 70; // 進行バーの幅
+      std::cout << "[";
+      int pos = barWidth * progress;
+      for (int j = 0; j < barWidth; ++j) {
+        if (j < pos) std::cout << "=";
+        else if (j == pos) std::cout << ">";
+        else std::cout << " ";
+      }
+      std::cout << "] " << int(progress * 100.0) << " %\r";
+      std::cout.flush();
+    }
+    std::cout << std::endl;
+    set_netphase(net_phase::train);  // push back to train phase
+    return test_result;
+  }
+
   /**
    * generate output for each input
    **/
@@ -569,6 +705,39 @@ class network {
     return sum_loss / in.size();
   }
 
+  template <typename E>
+  half get_loss(const std::vector<vec16_t> &in,
+                   const std::vector<label_t> &t) {
+    half sum_loss = half(0);
+
+    std::vector<tensor16_t> label_tensor;
+    normalize_tensor(t, label_tensor);  // one-hot encoding
+
+    set_netphase(net_phase::test);
+    for (size_t i = 0; i < in.size(); i++) {
+      const vec16_t predicted = predict16(in[i]);
+      sum_loss += E::f(predicted, label_tensor[i][0]);
+
+      // 進行状況の更新
+      float progress = (i + 1) / float(in.size());
+      int barWidth = 70; // 進行バーの幅
+      std::cout << "[";
+      int pos = barWidth * progress;
+      for (int j = 0; j < barWidth; ++j) {
+        if (j < pos) std::cout << "=";
+        else if (j == pos) std::cout << ">";
+        else std::cout << " ";
+      }
+      std::cout << "] " << int(progress * 100.0) << " %\r";
+      std::cout.flush();
+    }
+
+    std::cout << std::endl;
+    set_netphase(net_phase::train);
+    // return sum_loss / in.size();
+    return static_cast<half_float::half>(sum_loss / in.size());
+  }
+
   /**
    * calculate loss value (the smaller, the better) for regression task
    **/
@@ -578,6 +747,17 @@ class network {
 
     for (size_t i = 0; i < in.size(); i++) {
       const vec_t predicted = predict(in[i]);
+      sum_loss += E::f(predicted, t[i]);
+    }
+    return sum_loss;
+  }
+
+  template <typename E>
+  half get_loss(const std::vector<vec16_t> &in, const std::vector<vec16_t> &t) {
+    half sum_loss = half(0);
+
+    for (size_t i = 0; i < in.size(); i++) {
+      const vec16_t predicted = predict16(in[i]);
       sum_loss += E::f(predicted, t[i]);
     }
     return sum_loss;
@@ -889,6 +1069,10 @@ class network {
     return label_t(max_index(fprop(in)));
   }
 
+  label_t fprop_max_index(const vec16_t &in) {
+    return label_t(max_index(fprop(in)));
+  }
+
  private:
   template <typename Layer>
   friend network<sequential> &operator<<(network<sequential> &n, Layer &&l);
@@ -962,6 +1146,62 @@ class network {
     return true;
   }
 
+
+  template <typename Error,
+            typename Optimizer,
+            typename OnBatchEnumerate,
+            typename OnEpochEnumerate>
+  bool fit16(Optimizer &optimizer,
+             std::vector<tensor16_t> &inputs,
+             std::vector<tensor16_t> &desired_outputs,
+             size_t batch_size,
+             int epoch,
+             OnBatchEnumerate on_batch_enumerate,
+             OnEpochEnumerate on_epoch_enumerate,
+             const bool reset_weights              = false,
+             const int n_threads                   = CNN_TASK_SIZE,
+             const std::vector<tensor16_t> &t_cost = std::vector<tensor16_t>()) {
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // check_training_data(in, t);
+    check_target_cost_matrix(desired_outputs, t_cost);
+    set_netphase(net_phase::train);
+    net_.setup16(reset_weights);
+
+    for (auto n : net_) n->set_parallelize(true);
+    optimizer.reset();
+    stop_training_ = false;
+    in_batch_16_.resize(batch_size);
+    t_batch_16_.resize(batch_size);
+    for (int iter = 0; iter < epoch && !stop_training_; iter++) {
+      for (size_t i = 0; i < inputs.size() && !stop_training_;
+           i += batch_size) {
+        train_once<Error>(
+          optimizer, &inputs[i], &desired_outputs[i],
+          static_cast<int>(std::min(batch_size, (size_t)inputs.size() - i)),
+          n_threads, get_target_cost_sample_pointer(t_cost, i));
+        on_batch_enumerate();
+      }
+      on_epoch_enumerate();
+
+      // データのシャッフル
+      std::vector<size_t> indices(inputs.size());
+      std::iota(indices.begin(), indices.end(), 0);
+      // std::shuffle(indices.begin(), indices.end(), std::mt19937());
+      std::mt19937 rng(std::random_device{}());
+      std::shuffle(indices.begin(), indices.end(), rng);
+      std::vector<tensor16_t> inputs_shuffled(inputs.size());
+      std::vector<tensor16_t> desired_outputs_shuffled(desired_outputs.size());
+      for (size_t i = 0; i < inputs.size(); i++) {
+        inputs_shuffled[i] = inputs[indices[i]];
+        desired_outputs_shuffled[i] = desired_outputs[indices[i]];
+      }
+      inputs = inputs_shuffled;
+      desired_outputs = desired_outputs_shuffled;
+    }
+    set_netphase(net_phase::test);
+    return true;
+  }
+
   /**
    * train on one minibatch
    *
@@ -980,6 +1220,23 @@ class network {
     } else {
       train_onebatch<E>(optimizer, in, t, size, nbThreads, t_cost);
     }
+  }
+
+  template <typename E, typename Optimizer>
+  void train_once(Optimizer &optimizer,
+                  const tensor16_t *in,
+                  const tensor16_t *t,
+                  int size,
+                  const int nbThreads,
+                  const tensor16_t *t_cost) {
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    if (size == 1) {
+      bprop<E>(fprop(in[0]), t[0], t_cost ? t_cost[0] : tensor16_t());
+      net_.update_weights(&optimizer);
+    } else {
+      train_onebatch<E>(optimizer, in, t, size, nbThreads, t_cost);
+    }
+    // train_onebatch<E>(optimizer, in, t, size, nbThreads, t_cost);
   }
 
   /**
@@ -1007,6 +1264,29 @@ class network {
 
     bprop<E>(fprop(in_batch_), t_batch_, t_cost_batch);
     net_.update_weights(&optimizer);
+  }
+
+  template <typename E, typename Optimizer>
+  void train_onebatch(Optimizer &optimizer,
+                      const tensor16_t *in,
+                      const tensor16_t *t,
+                      int batch_size,
+                      const int num_tasks,
+                      const tensor16_t *t_cost) {
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    CNN_UNREFERENCED_PARAMETER(num_tasks);
+    std::copy(&in[0], &in[0] + batch_size, &in_batch_16_[0]);
+    std::copy(&t[0], &t[0] + batch_size, &t_batch_16_[0]);
+    std::vector<tensor16_t> t_cost_batch =
+      t_cost ? std::vector<tensor16_t>(&t_cost[0], &t_cost[0] + batch_size)
+             : std::vector<tensor16_t>();
+
+    auto forward = fprop(in_batch_16_);
+    bprop<E>(forward, t_batch_16_, t_cost_batch);
+    net_.update_weights16(&optimizer);
+
+    // bprop<E>(fprop(in_batch_16_), t_batch_16_, t_cost_batch);
+    // net_.update_weights(&optimizer);
   }
 
   //    template <typename E>
@@ -1132,6 +1412,21 @@ class network {
     }
   }
 
+  void check_target_cost_matrix(const std::vector<tensor16_t> &t,
+                                const std::vector<tensor16_t> &t_cost) {
+    if (!t_cost.empty()) {
+      if (t.size() != t_cost.size()) {
+        throw nn_error(
+          "if target cost is supplied, "
+          "its length must equal that of target data");
+      }
+
+      for (size_t i = 0, end = t.size(); i < end; i++) {
+        check_target_cost_element(t[i], t_cost[i]);
+      }
+    }
+  }
+
   // regression
   void check_target_cost_element(const vec_t &t, const vec_t &t_cost) {
     if (t.size() != t_cost.size()) {
@@ -1141,7 +1436,25 @@ class network {
     }
   }
 
+  void check_target_cost_element(const vec16_t &t, const vec16_t &t_cost) {
+    if (t.size() != t_cost.size()) {
+      throw nn_error(
+        "if target cost is supplied for a regression task, "
+        "its shape must be identical to the target data");
+    }
+  }
+
   void check_target_cost_element(const tensor_t &t, const tensor_t &t_cost) {
+    if (t.size() != t_cost.size()) {
+      throw nn_error(
+        "if target cost is supplied for a regression task, "
+        "its shape must be identical to the target data");
+    }
+    for (size_t i = 0; i < t.size(); i++)
+      check_target_cost_element(t[i], t_cost[i]);
+  }
+
+  void check_target_cost_element(const tensor16_t &t, const tensor16_t &t_cost) {
     if (t.size() != t_cost.size()) {
       throw nn_error(
         "if target cost is supplied for a regression task, "
@@ -1161,10 +1474,27 @@ class network {
     }
   }
 
+  const tensor16_t *get_target_cost_sample_pointer(
+    const std::vector<tensor16_t> &t_cost, size_t i) {
+    if (!t_cost.empty()) {
+      assert(i < t_cost.size());
+      return &(t_cost[i]);
+    } else {
+      return nullptr;
+    }
+  }
+
   void normalize_tensor(const std::vector<tensor_t> &inputs,
                         std::vector<tensor_t> &normalized) {
     normalized = inputs;
   }
+
+  void normalize_tensor(const std::vector<tensor16_t> &inputs,
+                        std::vector<tensor16_t> &normalized) {
+    normalized = inputs;
+  }
+
+
 
   void normalize_tensor(const std::vector<vec_t> &inputs,
                         std::vector<tensor_t> &normalized) {
@@ -1172,6 +1502,15 @@ class network {
     for (size_t i = 0; i < inputs.size(); i++)
       normalized.emplace_back(tensor_t{inputs[i]});
   }
+
+  void normalize_tensor(const std::vector<vec16_t> &inputs,
+                        std::vector<tensor16_t> &normalized) {
+    normalized.reserve(inputs.size());
+    for (size_t i = 0; i < inputs.size(); i++)
+      normalized.emplace_back(tensor16_t{inputs[i]});
+  }
+
+
 
   void normalize_tensor(const std::vector<label_t> &inputs,
                         std::vector<tensor_t> &normalized) {
@@ -1181,11 +1520,22 @@ class network {
     normalize_tensor(vec, normalized);
   }
 
+  void normalize_tensor(const std::vector<label_t> &inputs,
+                        std::vector<tensor16_t> &normalized) {
+    std::vector<vec16_t> vec;
+    normalized.reserve(inputs.size());
+    net_.label2vec(inputs, vec);
+    normalize_tensor(vec, normalized);
+  }
+
+
   std::string name_;
   NetType net_;
   bool stop_training_;
   std::vector<tensor_t> in_batch_;
   std::vector<tensor_t> t_batch_;
+  std::vector<tensor16_t> in_batch_16_;
+  std::vector<tensor16_t> t_batch_16_;
 };
 
 /**

@@ -213,6 +213,10 @@ class recurrent_layer : public layer {
     bptt_count_ = (bptt_count_ + seq_len_) % bptt_max_;
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   /**
    * Back propagation through time. Copies each sequence to a buffer and
    * backwards it copying state input grads to
@@ -290,6 +294,12 @@ class recurrent_layer : public layer {
         }
       }
     }
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   std::string layer_type() const override { return "recurrent-layer"; }

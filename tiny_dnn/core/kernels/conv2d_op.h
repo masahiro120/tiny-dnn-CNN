@@ -21,6 +21,7 @@ class Conv2dOp : public core::OpKernel {
     : core::OpKernel(context) {}
 
   void compute(core::OpKernelContext &context) override {
+    // std::cout << "Conv2dOp::compute" << std::endl;
     auto params = OpKernel::params_->conv();
 
     // incomimg/outcoming data
@@ -48,6 +49,27 @@ class Conv2dOp : public core::OpKernel {
     } else {
       throw nn_error("Not supported engine: " + to_string(engine));
     }
+  }
+
+  void compute16(core::OpKernelContext &context) override {
+    // std::cout << "Conv2dOp::compute" << std::endl;
+    auto params = OpKernel::params_->conv();
+
+    // incomimg/outcoming data
+    const tensor16_t &in_data = context.input16(0);
+    const tensor16_t &W       = context.input16(1);
+    const tensor16_t &bias    = context.input16(2);
+    tensor16_t &out_data      = context.output16(0);
+
+    // initialize outputs
+    fill_tensor(out_data, half{0});
+
+    // call convolution algorithm depending
+    // on the selected engine type
+
+    const core::backend_t engine = context.engine();
+    
+    kernels::conv2d_op_internal(in_data, W[0], bias[0], out_data, params, context.parallelize());
   }
 };
 

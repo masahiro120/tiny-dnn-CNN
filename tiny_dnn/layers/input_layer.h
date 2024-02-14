@@ -32,6 +32,10 @@ class input_layer : public layer {
     *out_data[0] = *in_data[0];
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   void back_propagation(const std::vector<tensor_t *> &in_data,
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
@@ -41,6 +45,12 @@ class input_layer : public layer {
     CNN_UNREFERENCED_PARAMETER(out_data);
     CNN_UNREFERENCED_PARAMETER(out_grad);
     CNN_UNREFERENCED_PARAMETER(in_grad);
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   friend struct serialization_buddy;

@@ -35,6 +35,7 @@ struct optimizer {
   optimizer &operator=(optimizer &&) = default;
   virtual ~optimizer()               = default;
   virtual void update(const vec_t &dW, vec_t &W, bool parallelize) = 0;
+  virtual void update16(const vec16_t &dW, vec16_t &W, bool parallelize) = 0;
   virtual void reset() {}  // override to implement pre-learning action
 };
 
@@ -52,7 +53,15 @@ struct stateful_optimizer : public optimizer {
     if (E_[Index][&key].empty()) E_[Index][&key].resize(key.size(), float_t());
     return E_[Index][&key];
   }
+
+  template <int Index>
+  vec16_t &get(const vec16_t &key) {
+    static_assert(Index < N, "index out of range");
+    if (E_16_[Index][&key].empty()) E_16_[Index][&key].resize(key.size(), half());
+    return E_16_[Index][&key];
+  }
   std::unordered_map<const vec_t *, vec_t> E_[N];
+  std::unordered_map<const vec16_t *, vec16_t> E_16_[N];
 };
 
 /**
@@ -115,7 +124,13 @@ struct adam : public stateful_optimizer<2> {
       b2(float_t(0.999)),
       b1_t(float_t(0.9)),
       b2_t(float_t(0.999)),
-      eps(float_t(1e-8)) {}
+      eps(float_t(1e-8)),
+      alpha_16(half(0.001)),
+      b1_16(half(0.9)),
+      b2_16(half(0.999)),
+      b1_t_16(half(0.9)),
+      b2_t_16(half(0.999)),
+      eps_16(half(1e-8)) {}
 
   void update(const vec_t &dW, vec_t &W, bool parallelize) {
 #if UPDATE == 0
@@ -255,14 +270,38 @@ struct adam : public stateful_optimizer<2> {
 #endif
   }
 
+  void update16(const vec16_t &dW, vec16_t &W, bool parallelize) {
+    vec16_t &mt = get<0>(W);
+    vec16_t &vt = get<1>(W);
+
+    for_i(parallelize, W.size(), [&](size_t i) {
+      mt[i] = b1_16 * mt[i] + (half(1) - b1_16) * dW[i];
+      vt[i] = b2_16 * vt[i] + (half(1) - b2_16) * dW[i] * dW[i];
+
+      // L2 norm based update rule
+      W[i] -= alpha * (mt[i] / (half(1) - b1_t_16)) /
+              std::sqrt((vt[i] / (half(1) - b2_t_16)) + eps);
+    });
+
+    b1_t *= b1;
+    b2_t *= b2;
+  }
+
   float_t alpha;  // learning rate
   float_t b1;     // decay term
   float_t b2;     // decay term
   float_t b1_t;   // decay term power t
   float_t b2_t;   // decay term power t
 
+  half alpha_16;  // learning rate
+  half b1_16;     // decay term
+  half b2_16;     // decay term
+  half b1_t_16;   // decay term power t
+  half b2_t_16;   // decay term power t
+
  private:
   float_t eps;  // constant value to avoid zero-division
+  half eps_16;  // constant value to avoid zero-division
 };
 
 /**

@@ -15,16 +15,22 @@ namespace weight_init {
 class function {
  public:
   virtual void fill(vec_t *weight, size_t fan_in, size_t fan_out) = 0;
+  virtual void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) = 0;
 };
 
 class scalable : public function {
  public:
   explicit scalable(float_t value) : scale_(value) {}
 
+  explicit scalable(half value) : scale_16_(value) {}
+
   void scale(float_t value) { scale_ = value; }
+
+  void scale16(half value) { scale_16_ = value; }
 
  protected:
   float_t scale_;
+  half scale_16_;
 };
 
 /**
@@ -41,6 +47,12 @@ class xavier : public scalable {
 
   void fill(vec_t *weight, size_t fan_in, size_t fan_out) override {
     const float_t weight_base = std::sqrt(scale_ / (fan_in + fan_out));
+
+    uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
+  }
+
+  void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) override {
+    const half weight_base = half(std::sqrt(scale_16_ / (fan_in + fan_out)));
 
     uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
   }
@@ -65,6 +77,14 @@ class lecun : public scalable {
 
     uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
   }
+
+  void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) override {
+    CNN_UNREFERENCED_PARAMETER(fan_out);
+
+    const half weight_base = scale_16_ / half(std::sqrt(float_t(fan_in)));
+
+    uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
+  }
 };
 
 class gaussian : public scalable {
@@ -77,6 +97,13 @@ class gaussian : public scalable {
     CNN_UNREFERENCED_PARAMETER(fan_out);
 
     gaussian_rand(weight->begin(), weight->end(), float_t{0}, scale_);
+  }
+
+  void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) override {
+    CNN_UNREFERENCED_PARAMETER(fan_in);
+    CNN_UNREFERENCED_PARAMETER(fan_out);
+
+    gaussian_rand(weight->begin(), weight->end(), half{0}, scale_16_);
   }
 };
 
@@ -91,6 +118,13 @@ class constant : public scalable {
 
     vectorize::fill(&(*weight)[0], weight->size(), scale_);
   }
+
+  void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) override {
+    CNN_UNREFERENCED_PARAMETER(fan_in);
+    CNN_UNREFERENCED_PARAMETER(fan_out);
+
+    vectorize::fill(&(*weight)[0], weight->size(), scale_16_);
+  }
 };
 
 class he : public scalable {
@@ -104,6 +138,14 @@ class he : public scalable {
     const float_t sigma = std::sqrt(scale_ / fan_in);
 
     gaussian_rand(weight->begin(), weight->end(), float_t{0}, sigma);
+  }
+
+  void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) override {
+    CNN_UNREFERENCED_PARAMETER(fan_out);
+
+    const half sigma = half(std::sqrt(scale_16_ / fan_in));
+
+    gaussian_rand(weight->begin(), weight->end(), half{0}, sigma);
   }
 };
 

@@ -85,6 +85,10 @@ class zero_pad_layer : public layer {
     }
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   void back_propagation(const std::vector<tensor_t *> &in_data,
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
@@ -104,6 +108,12 @@ class zero_pad_layer : public layer {
         dx[i][j] = dy[i][new_j];
       }
     }
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   size_t w_pad_size() const { return w_pad_size_; }

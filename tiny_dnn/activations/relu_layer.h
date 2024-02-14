@@ -52,6 +52,14 @@ class relu_layer : public activation_layer {
 #endif
   }
 
+  void forward_activation16(const vec16_t &x, vec16_t &y) override {
+
+    for (size_t j = 0; j < x.size(); j++) {
+      y[j] = std::max(half(0), x[j]);
+    }
+
+  }
+
   void backward_activation(const vec_t &x,
                            const vec_t &y,
                            vec_t &dx,

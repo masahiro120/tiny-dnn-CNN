@@ -29,6 +29,10 @@ using namespace std;
 
 int batch_count = 0;
 
+#include "tiny_dnn/half.hpp"
+
+using half_float::half;
+
 void print_line() {
     // 罫線のセクションごとに長さを事前に定義して出力
     std::cout << "+-------------------------+--------------+--------------+" << std::endl;
@@ -149,7 +153,7 @@ static void construct_net(tiny_dnn::network<tiny_dnn::sequential> &nn,
 
     const int num_classes = 43;
 
-    nn << batch_norm(input_w * input_h, input_c)
+    nn  << batch_norm(input_w * input_h, input_c)
         << conv(input_w, input_h, 3, 3, input_c, n_fmaps1, tiny_dnn::padding::same, true, 2, 2, 0, 0)  // 3x3 kernel, 2 stride
 
         << batch_norm(23 * 23, n_fmaps1)
@@ -194,33 +198,6 @@ static void train_lenet(const std::string &data_dir_path,
   construct_net(nn, backend_type);
 
   std::cout << "load models..." << std::endl;
-
-  
-  // // load MNIST dataset
-  // // extern std::vector<tiny_dnn::vec_t> train_images_data;
-  // // extern std::vector<tiny_dnn::label_t> train_labels_data;
-
-  // std::vector<tiny_dnn::vec_t> train_images;
-  // std::vector<tiny_dnn::vec_t> test_images;
-  // std::vector<tiny_dnn::label_t> train_labels;
-  // std::vector<tiny_dnn::label_t> test_labels;
-
-
-
-  // std::random_device rd;
-  // std::mt19937 g(123);
-  // std::shuffle(num_list.begin(), num_list.end(), g);
-
-  // for(int i = 0;i < num_list.size();i++){
-  //   if(i % 5 == 0) {
-  //     test_images.push_back(train_images_data[num_list[i]]);
-  //     test_labels.push_back(train_labels_data[num_list[i]]);
-  //   } else {
-  //     train_images.push_back(train_images_data[num_list[i]]);
-  //     train_labels.push_back(train_labels_data[num_list[i]]);
-  //   }
-  // }
-
   
   // int classes = 43;
   // int data_per_class = 80;
@@ -233,8 +210,9 @@ static void train_lenet(const std::string &data_dir_path,
   std::vector<tiny_dnn::vec_t> test_images(image_num / 2 * 0.2);
   std::vector<tiny_dnn::label_t> train_labels(image_num / 2 * 0.8);
   std::vector<tiny_dnn::label_t> test_labels(image_num / 2 * 0.2);
-  // std::random_device seed_gen;
-  // std::mt19937 engine(seed_gen());
+
+  std::vector<tiny_dnn::vec16_t> train_images_half(image_num / 2 * 0.8);
+  std::vector<tiny_dnn::vec16_t> test_images_half(image_num / 2 * 0.2);
 
   const unsigned int seed = 123;
   std::mt19937 engine(seed);
@@ -253,16 +231,20 @@ static void train_lenet(const std::string &data_dir_path,
     if (i % 5 == 0){
       // test
       test_images[test_index].resize(45 * 45);
+      test_images_half[test_index].resize(45 * 45);
       for(int j = 0; j < 45 * 45; j++){
         test_images[test_index][j] = train_images_data[num_list[i]][j];
+        test_images_half[test_index][j] = (half)train_images_data[num_list[i]][j];
       }
       test_labels[test_index] = train_labels_data[num_list[i]];
       test_index++;
     } else {
       // train
       train_images[train_index].resize(45 * 45);
+      train_images_half[train_index].resize(45 * 45);
       for(int j = 0; j < 45 * 45; j++){
         train_images[train_index][j] = train_images_data[num_list[i]][j];
+        train_images_half[train_index][j] = (half)train_images_data[num_list[i]][j];
       }
       train_labels[train_index] = train_labels_data[num_list[i]];
       train_index++;
@@ -278,15 +260,63 @@ static void train_lenet(const std::string &data_dir_path,
   std::cout << "test_images size : " << test_images.size() << std::endl;
   std::cout << "test_labels size : " << test_labels.size() << std::endl;
 
+  std::cout << "train_images_half size : " << train_images_half.size() << std::endl;
+  std::cout << "test_images_half size : " << test_images_half.size() << std::endl;
+
   std::cout << std::endl;
   half_map();
-
-  tiny_dnn::progress_display disp(train_images.size());
-  tiny_dnn::timer t;
 
   // optimizer.alpha *=
   //   std::min(tiny_dnn::float_t(4),
   //            static_cast<tiny_dnn::float_t>(sqrt(n_minibatch) * learning_rate));
+
+  tiny_dnn::progress_display disp_16(train_images.size());
+  tiny_dnn::timer t_16;
+
+  optimizer.alpha_16 *=
+    static_cast<half>(sqrt(n_minibatch) * learning_rate);
+
+  int epoch_16 = 1;
+  // create callback
+  auto on_enumerate_epoch_16 = [&]() {
+    std::cout << " Epoch " << epoch_16 << "/" << n_train_epochs << " finished. " << t_16.elapsed() << "s elapsed." << std::endl;
+
+    // // lossの計算
+    // std::cout << "calculate loss..." << std::endl;
+    // auto train_loss = this->model.get_loss<tiny_dnn::mse>(train_images, train_labels);
+    std::cout << "calculate test loss" << std::endl;
+    auto test_loss = nn.get_loss<tiny_dnn::cross_entropy_multiclass>(test_images_half, test_labels);
+    std::cout << "test loss: " << test_loss << std::endl;
+
+    // accuracyの計算
+    // std::cout << "calculate accuracy..." << std::endl;
+
+    // std::cout << "calculate train accuracy" << std::endl;
+    // tiny_dnn::result train_results = this->model.test(train_images, train_labels);
+    // float_t train_accuracy = (float_t)train_results.num_success * 100 / train_results.num_total;
+    // std::cout << "train accuracy: " << train_accuracy << "% (" << train_results.num_success << "/" << train_results.num_total << ")" << std::endl;
+
+    std::cout << "calculate test accuracy" << std::endl;
+    tiny_dnn::result test_results = nn.test(test_images_half, test_labels);
+    float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
+    std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
+    // std::cout << "train loss: " << train_loss << " test loss: " << test_loss << std::endl;
+    // std::cout << "train accuracy: " << train_accuracy << "% test accuracy: " << test_accuracy << "%" << std::endl;
+
+    ++epoch_16;
+    disp_16.restart(train_images.size());
+    t_16.restart();
+  };
+  
+  auto on_enumerate_minibatch_16 = [&]() { disp_16 += n_minibatch; };
+  
+  nn.fit16<tiny_dnn::cross_entropy_multiclass>(optimizer, train_images_half, train_labels, n_minibatch,
+                          n_train_epochs, on_enumerate_minibatch_16, on_enumerate_epoch_16);
+
+  std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
+  tiny_dnn::progress_display disp(train_images.size());
+  tiny_dnn::timer t;
 
   optimizer.alpha *=
     static_cast<tiny_dnn::float_t>(sqrt(n_minibatch) * learning_rate);
@@ -327,8 +357,7 @@ static void train_lenet(const std::string &data_dir_path,
 
   // training
   nn.fit<tiny_dnn::cross_entropy_multiclass>(optimizer, train_images, train_labels, n_minibatch,
-                          n_train_epochs, on_enumerate_minibatch,
-                          on_enumerate_epoch);
+                          n_train_epochs, on_enumerate_minibatch, on_enumerate_epoch);
 
   std::cout << "end training." << std::endl;
 

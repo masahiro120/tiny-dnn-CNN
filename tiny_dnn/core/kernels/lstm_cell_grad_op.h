@@ -74,6 +74,9 @@ class LSTMCellGradOp : public core::OpKernel {
       params.has_bias_ ? *db_2o : dummy, d_o_next, d_h_next, d_c_next, d_o_prev,
       d_h_prev, d_c_prev, o_next, i, f, z, c, params, context.parallelize());
   }
+
+  void compute16(core::OpKernelContext &context) override {
+  }
 };
 
 }  // namespace tiny_dnn

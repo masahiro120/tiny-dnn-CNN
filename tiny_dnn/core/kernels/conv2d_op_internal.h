@@ -122,54 +122,6 @@ inline void conv2d_op_internal(const tensor_t &in_data,
              }
            }
          }
-
-        // 畳み込み演算のための関数
-        // 以下の部分は、conv2d_op_internal関数内の畳み込み演算部分の修正例です。
-
-        // for (size_t sample = r.begin(); sample < r.end(); sample++) {
-        //   const vec_t &in = in_data[sample];
-        //   vec_t &a        = out_data[sample];
-        //   for (size_t o = 0; o < od; o++) {
-        //     float_t *pa = &a[params.out.get_index(0, 0, o)];
-        //     for (size_t inc = 0; inc < id; inc++) {
-        //       if (!params.tbl.is_connected(o, inc)) continue;
-        //       size_t idx                = params.weight.get_index(0, 0, id * o + inc);
-        //       const float_t *pw         = &W[idx];
-        //       idx                       = params.in_padded.get_index(0, 0, inc);
-        //       const float_t *pin        = &in[idx];
-        //       float_t *pout             = pa;
-        //       for (size_t y = 0; y < oh; y++) {
-        //         const float_t *pin_line = pin;
-        //         for (size_t x = 0; x < ow; x++) {
-        //           const float_t *pin_element = pin_line;
-        //           const float_t *pw_element  = pw;
-        //           float_t sum{0};
-        //           // 小さい値から順に加算するように順序を最適化
-        //           std::vector<float_t> temp_sums;
-        //           for (size_t wy = 0; wy < kh; wy++) {
-        //             for (size_t wx = 0; wx < kw; wx++) {
-        //               temp_sums.push_back(pw_element[wx] * pin_element[wx * w_dilation]);
-        //             }
-        //             pw_element += kw;
-        //             pin_element += iw * h_dilation;
-        //           }
-        //           // 小さい値から順に加算して誤差を最小限に抑える
-        //           std::sort(temp_sums.begin(), temp_sums.end(), [](float_t a, float_t b) { return std::abs(a) < std::abs(b); });
-        //           for (auto val : temp_sums) {
-        //             sum += val;
-        //           }
-        //           pout[x] += sum;
-        //           pin_line += elem_stride;
-        //         }
-        //         pout += ow;
-        //         pin += line_stride;
-        //       }
-        //     }
-        //     if (params.has_bias) {
-        //       vectorize::add(bias[o], out_area, pa);
-        //     }
-        //   }
-        // }
        },
        0u);
 
@@ -329,6 +281,72 @@ inline void conv2d_op_internal(const tensor_t &in_data,
   two_half_to_vector(out_data, out_data_half);
 
 #endif
+}
+
+inline void conv2d_op_internal(const tensor16_t &in_data,
+                               const vec16_t &W,
+                               const vec16_t &bias,
+                               tensor16_t &out_data,
+                               const core::conv_params &params,
+                               const bool parallelize) {
+  for_(parallelize, 0u, in_data.size(),
+       [&](const blocked_range &r) {
+         size_t out_area    = params.out.area();
+         size_t iw          = params.in_padded.width_;
+         size_t id          = params.in.depth_;
+         size_t ow          = params.out.width_;
+         size_t oh          = params.out.height_;
+         size_t od          = params.out.depth_;
+         size_t kw          = params.weight.width_;
+         size_t kh          = params.weight.height_;
+         size_t w_dilation  = params.w_dilation;
+         size_t h_dilation  = params.h_dilation;
+         size_t elem_stride = params.w_stride;
+         size_t line_stride = iw * params.h_stride;
+         for (size_t sample = r.begin(); sample < r.end(); sample++) {
+           const vec16_t &in = in_data[sample];
+           vec16_t &a        = out_data[sample];
+           for (size_t o = 0; o < od; o++) {
+             half *pa = &a[params.out.get_index(0, 0, o)];
+             for (size_t inc = 0; inc < id; inc++) {
+               if (!params.tbl.is_connected(o, inc)) continue;
+               size_t idx;
+               idx                = params.weight.get_index(0, 0, id * o + inc);
+               const half *pw  = &W[idx];
+               idx                = params.in_padded.get_index(0, 0, inc);
+               const half *pin = &in[idx];
+               half *pout      = pa;
+               for (size_t y = 0; y < oh; y++) {
+                 const half *pin_line = pin;
+                 for (size_t x = 0; x < ow; x++) {
+                   const half *pin_element = pin_line;
+                   const half *pw_element  = pw;
+                   half sum{0};
+                   // should be optimized for small kernel(3x3,5x5)
+                   for (size_t wy = 0; wy < kh; wy++) {    // NOLINT
+                     for (size_t wx = 0; wx < kw; wx++) {  // NOLINT
+                       sum += pw_element[wx] * pin_element[wx * w_dilation];
+                     }
+                     pw_element += kw;
+                     pin_element += iw * h_dilation;
+                   }
+                   pout[x] += sum;
+                   pin_line += elem_stride;
+                 }
+                 pout += ow;
+                 pin += line_stride;
+               }
+             }
+             if (params.has_bias) {
+              //  vectorize::add(bias[o], out_area, pa);
+              for (size_t i = 0; i < out_area; i++) {
+                pa[i] += bias[o];
+              }
+             }
+           }
+         }
+       },
+       0u);
 }
 
 /******************************************************************/
@@ -755,6 +773,139 @@ void conv2d_op_internal(const tensor_t &prev_out,
   two_half_to_vector(db, db_half);
 
 #endif
+}
+
+template <typename tensor16_t, typename vec16_t>
+void conv2d_op_internal16(const tensor16_t &prev_out,
+                        const vec16_t &W,
+                        tensor16_t &dW,
+                        tensor16_t &db,
+                        tensor16_t &curr_delta,
+                        tensor16_t &prev_delta,
+                        const core::conv_params &params,
+                        const bool parallelize) {
+  std::cout << "prev_delta.size() = " << prev_delta.size() << std::endl;
+  std::cout << "prev_delta[0].size() = " << prev_delta[0].size() << std::endl;
+
+  // printf("conv backward\n");
+  typedef typename vec_t::value_type float_t;
+
+std::cout << "prev_out" << std::endl;
+for_i(parallelize, prev_out.size(), [&](size_t sample) {
+  std::cout << "Processing sample: " << sample << std::endl;
+  
+  for (size_t inc = 0; inc < params.in.depth_; inc++) {
+    for (size_t outc = 0; outc < params.out.depth_; outc++) {
+      std::cout << "  Connecting outc: " << outc << " to inc: " << inc << std::endl;
+      
+      if (!params.tbl.is_connected(outc, inc)) {
+        std::cout << "    Not connected, skipping\n";
+        continue;
+      }
+
+      size_t idx = params.in.depth_ * outc + inc;
+      std::cout << "    Initial idx for W: " << idx << std::endl;
+
+      idx = params.weight.get_index(0, 0, idx);
+      const half *pw = &W[idx];
+      std::cout << "    Adjusted idx for W: " << idx << std::endl;
+
+      idx = params.out.get_index(0, 0, outc);
+      const half *pdelta_src = &curr_delta[sample][idx];
+      std::cout << "    idx for curr_delta: " << idx << std::endl;
+
+      idx = params.in_padded.get_index(0, 0, inc);
+      half *pdelta_dst = &prev_delta[sample][idx];
+      std::cout << "    idx for prev_delta (pdelta_dst): " << idx << std::endl;
+
+      for (size_t y = 0; y < params.out.height_; y++) {
+        for (size_t x = 0; x < params.out.width_; x++) {
+          const half *ppw = pw;
+          idx = y * params.out.width_ + x;
+          const half ppdelta_src = pdelta_src[idx];
+          std::cout << "      Processing x: " << x << ", y: " << y << " with idx: " << idx << std::endl;
+
+          half *ppdelta_dst = pdelta_dst + y * params.h_stride * params.in_padded.width_ + x * params.w_stride;
+
+          for (size_t wy = 0; wy < params.weight.height_; wy++) {
+            for (size_t wx = 0; wx < params.weight.width_; wx++) {
+              idx = wy * params.in_padded.width_ + wx;
+              std::cout << "        Updating ppdelta_dst with idx: " << idx << std::endl;
+              ppdelta_dst[idx] += *ppw++ * ppdelta_src;
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
+
+  std::cout << "dW" << std::endl;
+  for_i(parallelize, prev_out.size(), [&](size_t sample) {
+    // accumulate dw_chedW
+    for (size_t inc = 0; inc < params.in.depth_; inc++) {
+      for (size_t outc = 0; outc < params.out.depth_; outc++) {
+        if (!params.tbl.is_connected(outc, inc)) continue;
+
+        for (size_t wy = 0; wy < params.weight.height_; wy++) {
+          for (size_t wx = 0; wx < params.weight.width_; wx++) {
+            half dst{0};
+
+            size_t idx           = 0;
+            idx                  = params.in_padded.get_index(wx, wy, inc);
+            const half *prevo = &prev_out[sample][idx];
+
+            idx                  = params.out.get_index(0, 0, outc);
+            const half *delta = &curr_delta[sample][idx];
+
+            if (params.w_stride > 1) {
+              for (size_t y = 0; y < params.out.height_; y++) {
+                size_t prevo_idx =
+                  y * params.in_padded.width_ * params.h_stride;
+                size_t delta_idx = y * params.out.width_;
+
+                for (size_t x = 0; x < params.out.width_; x++) {
+                  dst += prevo[prevo_idx + x * params.w_stride] *
+                         delta[delta_idx + x];
+                }
+              }
+            } else {
+              // for (size_t y = 0; y < params.out.height_; y++) {
+              //   dst += vectorize::dot(
+              //     prevo + y * params.in_padded.width_ * params.h_stride,
+              //     delta + y * params.out.width_, params.out.width_);
+              // }
+              for (size_t y = 0; y < params.out.height_; y++) {
+                size_t prevo_idx =
+                  y * params.in_padded.width_ * params.h_stride;
+                size_t delta_idx = y * params.out.width_;
+                for (size_t x = 0; x < params.out.width_; x++) {
+                  dst += prevo[prevo_idx + x] * delta[delta_idx + x];
+                }
+              }
+            }
+
+            idx = params.in.depth_ * outc + inc;
+            dW[sample][params.weight.get_index(wx, wy, idx)] += dst;
+          }
+        }
+      }
+    }
+  });
+
+  std::cout << "db" << std::endl;
+  for_i(parallelize, prev_out.size(), [&](size_t sample) {
+    // accumulate db
+    if (params.has_bias) {
+      for (size_t outc = 0; outc < params.out.depth_; outc++) {
+        size_t idx            = params.out.get_index(0, 0, outc);
+        const half *delta  = &curr_delta[sample][idx];
+        const half *deltaa = delta + params.out.width_ * params.out.height_;
+        db[sample][outc] += std::accumulate(delta, deltaa, half{0});
+      }
+    }
+  });
 }
 
 }  // namespace kernels

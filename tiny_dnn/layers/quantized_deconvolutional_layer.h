@@ -242,6 +242,10 @@ class quantized_deconvolutional_layer : public layer {
     }
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   /**
    * return delta of previous layer (delta=\frac{dE}{da}, a=wx in
    *fully-connected layer)
@@ -259,6 +263,12 @@ class quantized_deconvolutional_layer : public layer {
                         std::vector<tensor_t *> &out_grad,
                         std::vector<tensor_t *> &in_grad) override {
     layer::backend_->deconv2d_q(in_data, out_data, out_grad, in_grad);
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   std::vector<index3d<size_t>> in_shape() const override {

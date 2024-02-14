@@ -147,6 +147,9 @@ class Conv2dLibDNNForwardOp : public core::OpKernel {
 #endif
   }
 
+  void compute16(core::OpKernelContext &context) override {
+  }
+
  private:
 #ifdef CNN_USE_LIBDNN
   float_t *mutable_double_cast(const cl_mem cl_mem_gpu) {
@@ -260,6 +263,9 @@ class Conv2dLibDNNBackwardOp : public core::OpKernel {
   void compute(core::OpKernelContext &context) override {
     CNN_UNREFERENCED_PARAMETER(context);
     throw nn_error("Not implemented yet.");
+  }
+
+  void compute16(core::OpKernelContext &context) override {
   }
 };
 

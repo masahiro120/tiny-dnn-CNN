@@ -124,6 +124,9 @@ class Conv2dOpenCLForwardOp : public core::OpKernel {
     throw nn_error("Not compiled with OpenCL");
 #endif
   }
+
+  void compute16(core::OpKernelContext &context) override {
+  }
 };
 
 class Conv2dOpenCLBackwardOp : public core::OpKernel {
@@ -134,6 +137,9 @@ class Conv2dOpenCLBackwardOp : public core::OpKernel {
   void compute(core::OpKernelContext &context) override {
     CNN_UNREFERENCED_PARAMETER(context);
     nn_error("Not implemented yet.");
+  }
+
+  void compute16(core::OpKernelContext &context) override {
   }
 };
 

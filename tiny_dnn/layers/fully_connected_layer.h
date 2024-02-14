@@ -78,6 +78,10 @@ class fully_connected_layer : public layer {
     kernel_fwd_->compute(fwd_ctx_);
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   void back_propagation(const std::vector<tensor_t *> &in_data,
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
@@ -89,6 +93,12 @@ class fully_connected_layer : public layer {
 
     // launch fully connected kernel
     kernel_back_->compute(bwd_ctx_);
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   std::string layer_type() const override { return "fully-connected"; }

@@ -102,6 +102,10 @@ class l2_normalization_layer : public layer {
     });
   }
 
+  void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+                               std::vector<tensor16_t *> &out_data) override {
+  }
+
   void back_propagation(const std::vector<tensor_t *> &in_data,
                         const std::vector<tensor_t *> &out_data,
                         std::vector<tensor_t *> &out_grad,
@@ -112,6 +116,12 @@ class l2_normalization_layer : public layer {
     const size_t num_samples = curr_out.size();
 
     CNN_UNREFERENCED_PARAMETER(in_data);
+  }
+
+  void back_propagation16(const std::vector<tensor16_t *> &in_data,
+                          const std::vector<tensor16_t *> &out_data,
+                          std::vector<tensor16_t *> &out_grad,
+                          std::vector<tensor16_t *> &in_grad) override {
   }
 
   std::string layer_type() const override { return "l2-norm"; }

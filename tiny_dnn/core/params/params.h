@@ -7,6 +7,8 @@
 */
 #pragma once
 
+#include "tiny_dnn/half.hpp"
+
 namespace tiny_dnn {
 namespace core {
 
