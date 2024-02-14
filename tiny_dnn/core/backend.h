@@ -44,15 +44,16 @@ inline std::ostream &operator<<(std::ostream &os, backend_t type) {
 }
 
 inline backend_t default_engine() {
-#ifdef CNN_USE_AVX
-#if defined(__AVX__) || defined(__AVX2__)
-  return backend_t::avx;
-#else
-#error "your compiler does not support AVX"
-#endif
-#else
+// #ifdef CNN_USE_AVX
+// #if defined(__AVX__) || defined(__AVX2__)
+//   return backend_t::avx;
+// #else
+// #error "your compiler does not support AVX"
+// #endif
+// #else
+//   return backend_t::internal;
+// #endif
   return backend_t::internal;
-#endif
 }
 
 #ifdef CNN_USE_NNPACK

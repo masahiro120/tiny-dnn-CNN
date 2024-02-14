@@ -32,9 +32,11 @@
 
 using namespace half_float;
 
-extern int MARGE_HALF;
+// #define MARGE_HALF 0
 
+std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
+void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
 
 namespace tiny_dnn {
 
@@ -98,7 +100,7 @@ class edge {
 
   void merge_grads(vec_t *dst) {
 #if MARGE_HALF == 0
-#if 1
+#if 0
     assert(!grad_.empty());
     const auto &grad_head = grad_[0];
     size_t sz             = grad_head.size();
@@ -114,20 +116,57 @@ class edge {
     }
 #else
     assert(!grad_.empty());
-    const auto &grad_head = grad_[0];
-    size_t sz             = grad_head.size();
+    tensor_t grad_val = grad_;
+    size_t sz         = grad_val[0].size();
     dst->resize(sz);
-    half_t *pdst = &(*dst)[0];
+    // float_t *pdst = &(*dst)[0];
+    vec_t dst_val(sz);
+    dst_val = *dst;
+
     // dst = grad_[0]
-    std::copy(grad_head.begin(), grad_head.end(), pdst);
-    // @todo consider adding parallelism
-    for (size_t sample = 1, sample_count = grad_.size(); sample < sample_count;
+    for (size_t i = 0; i < sz; i++) {
+      dst_val[i] = grad_val[0][i];
+    }
+
+    for (size_t sample = 1, sample_count = grad_val.size(); sample < sample_count;
          ++sample) {
       // dst += grad_[sample]
-      vectorize::reduce<half_t>(&grad_[sample][0], sz, pdst);
+      for (size_t i = 0; i < sz; i++) {
+        dst_val[i] += grad_val[sample][i];
+      }
     }
+
+    *dst = dst_val;
+
 #endif
 #else
+    assert(!grad_.empty());
+    // tensor_t grad_val = grad_;
+    std::vector<std::vector<half>> grad_half = two_vector_to_half(grad_);
+    size_t sz         = grad_half[0].size();
+    dst->resize(sz);
+    // float_t *pdst = &(*dst)[0];
+    vec_t dst_val(sz);
+    dst_val = *dst;
+    std::vector<half> dst_half = one_vector_to_half(dst_val);
+
+    // dst = grad_[0]
+    for (size_t i = 0; i < sz; i++) {
+      dst_half[i] = grad_half[0][i];
+    }
+
+    for (size_t sample = 1, sample_count = grad_half.size(); sample < sample_count;
+         ++sample) {
+      // dst += grad_[sample]
+      for (size_t i = 0; i < sz; i++) {
+        dst_half[i] += grad_half[sample][i];
+      }
+    }
+
+    one_half_to_vector(dst_val, dst_half);
+
+
+    *dst = dst_val;
 #endif
   }
 

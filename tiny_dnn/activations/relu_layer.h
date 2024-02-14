@@ -15,8 +15,8 @@
 #include "../layers/layer.h"
 
 
-extern int RELU_F_HALF;
-extern int RELU_B_HALF;
+// #define RELU_F_HALF 1
+// #define RELU_B_HALF 1
 
 #include "../half.hpp"
 #include "../half_define.h"

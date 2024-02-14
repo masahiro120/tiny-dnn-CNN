@@ -29,34 +29,100 @@ using namespace std;
 
 int batch_count = 0;
 
-int CONV_F_HALF = 0;
-int CONV_B_HALF = 0;
+void print_line() {
+    // 罫線のセクションごとに長さを事前に定義して出力
+    std::cout << "+-------------------------+--------------+--------------+" << std::endl;
+}
 
-int FC_F_HALF = 0;
-int FC_B_HALF = 0;
+void print_short_line() {
+    std::cout << "+-------------------------+--------------+" << std::endl;
+}
 
-int MAX_POOLING_F_HALF = 0;
-int MAX_POOLING_B_HALF = 0;
+// 中央揃えを行うためのヘルパー関数
+std::string center(const std::string& str, int width) {
+    int len = str.length();
+    if(width < len) { return str; }
 
-int RELU_F_HALF = 0;
-int RELU_B_HALF = 0;
+    int diff = width - len;
+    int pad1 = diff / 2;
+    int pad2 = diff - pad1;
 
-int SOFTMAX_F_HALF = 0;
-// 要確認
-int SOFTMAX_B_HALF = 1;
+    return std::string(pad1, ' ') + str + std::string(pad2, ' ');
+}
 
-int DROP_OUT_F_HALF = 0;
-int DROP_OUT_B_HALF = 0;
+void half_map() {
+    int width = 58; // 表の幅を設定
+    std::cout << "HALF MAP" << std::endl << std::endl;
+    print_line(); // 表のヘッダーの上の線
+    // 見出しを中央揃えで出力
+    std::cout << "|"
+              << std::left << std::setw(25) << "Layer" << "|"
+              << center("FORWARD", 14) << "|"
+              << center("BACK", 14)
+              << "|" << std::endl;
+    // print_line(); // 表のヘッダーの下の線
+    std::cout << "=========================================================" << std::endl;
 
-// 要確認
-int BATCH_NORM_F_HALF = 0;
+    /// 項目と状態を中央揃えで出力
+    std::cout << "|" << std::left << std::setw(25) << "CONVOLUTIONAL" << "|"
+              << center(((CONV_F_HALF == 1) ? "O N" : "OFF"), 14) << "|"
+              << center(((CONV_B_HALF == 1) ? "O N" : "OFF"), 14) << "|" << std::endl;
+    print_line();
 
-int BATCH_NORM_B_HALF = 0;
+    // FC, MAX POOLING, ... についても同様に出力
+    std::cout << "|" << std::left << std::setw(25) << "FULLY CONNECTED" << "|"
+              << center(((FC_F_HALF == 1) ? "O N" : "OFF"), 14) << "|"
+              << center(((FC_B_HALF == 1) ? "O N" : "OFF"), 14) << "|" << std::endl;
+    print_line();
 
-// 要確認
-int LOSS_HALF = 0;
+    std::cout << "|" << std::left << std::setw(25) << "MAX POOLING" << "|"
+              << center(((MAX_POOLING_F_HALF == 1) ? "O N" : "OFF"), 14) << "|"
+              << center(((MAX_POOLING_B_HALF == 1) ? "O N" : "OFF"), 14) << "|" << std::endl;
+    print_line();
 
-int MARGE_HALF = 0;
+    std::cout << "|" << std::left << std::setw(25) << "RELU" << "|"
+              << center(((RELU_F_HALF == 1) ? "O N" : "OFF"), 14) << "|"
+              << center(((RELU_B_HALF == 1) ? "O N" : "OFF"), 14) << "|" << std::endl;
+    print_line();
+
+    std::cout << "|" << std::left << std::setw(25) << "SOFTMAX" << "|"
+              << center(((SOFTMAX_F_HALF == 1) ? "O N" : "OFF"), 14) << "|"
+              << center(((SOFTMAX_B_HALF == 1) ? "O N" : "OFF"), 14) << "|" << std::endl;
+    print_line();
+
+    std::cout << "|" << std::left << std::setw(25) << "DROP OUT" << "|"
+              << center(((DROP_OUT_F_HALF == 1) ? "O N" : "OFF"), 14) << "|"
+              << center(((DROP_OUT_B_HALF == 1) ? "O N" : "OFF"), 14) << "|" << std::endl;
+    print_line();
+
+    std::cout << "|" << std::left << std::setw(25) << "BATCH NORMALIZATION" << "|"
+              << center(((BATCH_NORM_F_HALF == 1) ? "O N" : "OFF"), 14) << "|"
+              << center(((BATCH_NORM_B_HALF == 1) ? "O N" : "OFF"), 14) << "|" << std::endl;
+    print_line();
+
+
+    std::cout << std::endl << std::endl;
+    print_short_line();
+    std::cout << "|"
+              << std::left << std::setw(25) << "LOSS" << "|"
+              << center(((LOSS_HALF == 1) ? "O N" : "OFF"), 14)
+              << "|" << std::endl;
+    print_short_line();
+
+    std::cout << "|"
+              << std::left << std::setw(25) << "MARGE" << "|"
+              << center(((MARGE_HALF == 1) ? "O N" : "OFF"), 14)
+              << "|" << std::endl;
+    print_short_line();
+
+    std::cout << "|"
+              << std::left << std::setw(25) << "UPDATE" << "|"
+              << center(((UPDATE == 1) ? "O N" : "OFF"), 14)
+              << "|" << std::endl;
+    print_short_line();
+
+    std::cout << std::endl;
+}
 
 static void construct_net(tiny_dnn::network<tiny_dnn::sequential> &nn,
                           tiny_dnn::core::backend_t backend_type) {
@@ -212,6 +278,8 @@ static void train_lenet(const std::string &data_dir_path,
   std::cout << "test_images size : " << test_images.size() << std::endl;
   std::cout << "test_labels size : " << test_labels.size() << std::endl;
 
+  std::cout << std::endl;
+  half_map();
 
   tiny_dnn::progress_display disp(train_images.size());
   tiny_dnn::timer t;
@@ -231,7 +299,9 @@ static void train_lenet(const std::string &data_dir_path,
     // // lossの計算
     // std::cout << "calculate loss..." << std::endl;
     // auto train_loss = this->model.get_loss<tiny_dnn::mse>(train_images, train_labels);
-    // auto test_loss = this->model.get_loss<tiny_dnn::mse>(test_images, test_labels);
+    std::cout << "calculate test loss" << std::endl;
+    auto test_loss = nn.get_loss<tiny_dnn::cross_entropy_multiclass>(test_images, test_labels);
+    std::cout << "test loss: " << test_loss << std::endl;
 
     // accuracyの計算
     // std::cout << "calculate accuracy..." << std::endl;

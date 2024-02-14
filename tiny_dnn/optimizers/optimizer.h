@@ -12,6 +12,14 @@
 
 #include "../util/util.h"
 
+#include "../half.hpp"
+#include "../half_define.h"
+
+using half_float::half;
+
+std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
+void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
+
 namespace tiny_dnn {
 
 /**
@@ -110,6 +118,8 @@ struct adam : public stateful_optimizer<2> {
       eps(float_t(1e-8)) {}
 
   void update(const vec_t &dW, vec_t &W, bool parallelize) {
+#if UPDATE == 0
+#if 0
     vec_t &mt = get<0>(W);
     vec_t &vt = get<1>(W);
 
@@ -124,6 +134,125 @@ struct adam : public stateful_optimizer<2> {
 
     b1_t *= b1;
     b2_t *= b2;
+#else
+
+    vec_t &mt = get<0>(W);
+    vec_t &vt = get<1>(W);
+
+    vec_t mt_val = mt;
+    vec_t vt_val = vt;
+
+    vec_t dW_val = dW;
+    vec_t W_val = W;
+
+    for_i(parallelize, W.size(), [&](size_t i) {
+      mt_val[i] = b1 * mt_val[i] + (float_t(1) - b1) * dW_val[i];
+      vt_val[i] = b2 * vt_val[i] + (float_t(1) - b2) * dW_val[i] * dW_val[i];
+
+      // L2 norm based update rule
+      W_val[i] -= alpha * (mt_val[i] / (float_t(1) - b1_t)) /
+              std::sqrt((vt_val[i] / (float_t(1) - b2_t)) + eps);
+    });
+
+    mt = mt_val;
+    vt = vt_val;
+    // dW = dW_val;
+    W = W_val;
+
+    b1_t *= b1;
+    b2_t *= b2;
+
+#endif
+#else
+    vec_t &mt = get<0>(W);
+    vec_t &vt = get<1>(W);
+
+    std::vector<half> mt_half = one_vector_to_half(mt);
+    std::vector<half> vt_half = one_vector_to_half(vt);
+
+    std::vector<half> dW_half = one_vector_to_half(dW);
+    std::vector<half> W_half = one_vector_to_half(W);
+
+    vec_t mt_val(mt.size());
+    one_half_to_vector(mt_val, mt_half);
+    vec_t vt_val(vt.size());
+    one_half_to_vector(vt_val, vt_half);
+    vec_t dW_val(dW.size());
+    one_half_to_vector(dW_val, dW_half);
+    vec_t W_val(W.size());
+    one_half_to_vector(W_val, W_half);
+
+    // for_i(parallelize, W.size(), [&](size_t i) {
+    //   mt_half[i] = (half)(b1) * mt_half[i] + (half(1) - (half)(b1)) * dW_half[i];
+    //   vt_half[i] = (half)(b2) * vt_half[i] + (half(1) - (half)(b2)) * dW_half[i] * dW_half[i];
+
+    //   // L2 norm based update rule
+    //   W_half[i] -= (half)(alpha) * (mt_half[i] / (half(1) - (half)(b1_t))) /
+    //           std::sqrt((vt_half[i] / (half(1) - (half)(b2_t))) + (half)(eps));
+    // });
+
+    // const half half_min = std::numeric_limits<half>::lowest(); // halfの最小値を取得
+
+    // for_i(parallelize, W.size(), [&](size_t i) {
+    //   mt_half[i] = (half)(b1) * mt_half[i] + (half(1) - (half)(b1)) * dW_half[i];
+    //   vt_half[i] = (half)(b2) * vt_half[i] + (half(1) - (half)(b2)) * dW_half[i] * dW_half[i];
+
+    //   half denom = (half)std::sqrt((float)((vt_half[i] / (half(1) - (half)(b2_t))) + (half)(eps)));
+    //   if (denom == (half)0) {
+    //     W_half[i] = (W_half[i] > 0) ? half_min : -half_min;
+    //   } else {
+    //     half update_value = (half)(alpha) * (mt_half[i] / (half(1) - (half)(b1_t))) / denom;
+    //     if (std::isnan(update_value)) {
+    //       W_half[i] = (W_half[i] > 0) ? half_min : -half_min;
+    //     } else {
+    //       W_half[i] -= update_value;
+    //     }
+    //   }
+
+    //   W_half[i] = std::max(half_min, (half)std::abs((float)W_half[i])) * (W_half[i] > 0 ? 1 : -1);
+    // });
+
+    for_i(parallelize, W.size(), [&](size_t i) {
+      mt_val[i] = b1 * mt_val[i] + (float_t(1) - b1) * dW_val[i];
+      vt_val[i] = b2 * vt_val[i] + (float_t(1) - b2) * dW_val[i] * dW_val[i];
+
+      // L2 norm based update rule
+      W_val[i] -= alpha * (mt_val[i] / (float_t(1) - b1_t)) /
+              std::sqrt((vt_val[i] / (float_t(1) - b2_t)) + eps);
+    });
+
+    mt_half = one_vector_to_half(mt_val);
+    vt_half = one_vector_to_half(vt_val);
+    dW_half = one_vector_to_half(dW_val);
+    W_half = one_vector_to_half(W_val);
+
+    // nan check
+    for (size_t i = 0; i < W_half.size(); i++) {
+      if (std::isnan(W_half[i])) {
+        std::cout << "W nan is detected at " << i << std::endl;
+        exit(1);
+      }
+
+      if (std::isnan(mt_half[i])) {
+        std::cout << "mt nan is detected at " << i << std::endl;
+        exit(1);
+      }
+
+      if (std::isnan(vt_half[i])) {
+        std::cout << "vt nan is detected at " << i << std::endl;
+        exit(1);
+      }
+    }
+
+    one_half_to_vector(mt, mt_half);
+    one_half_to_vector(vt, vt_half);
+    // one_half_to_vector(dW, dW_half);
+    one_half_to_vector(W, W_half);
+
+    b1_t *= b1;
+    b2_t *= b2;
+
+#endif
   }
 
   float_t alpha;  // learning rate

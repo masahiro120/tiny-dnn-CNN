@@ -16,8 +16,8 @@ using half_float::half;
 #define F_CHECK 0
 #define B_CHECK 0
 
-extern int CONV_F_HALF;
-extern int CONV_B_HALF;
+// #define CONV_F_HALF 1
+// #define CONV_B_HALF 1
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
