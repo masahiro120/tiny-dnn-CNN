@@ -386,6 +386,12 @@ class convolutional_layer : public layer {
                                    vec_t(params_.in_padded.size(), float_t(0)));
   }
 
+  void set_sample_count16(size_t sample_count) override {
+    layer::set_sample_count16(sample_count);
+    cws_.prev_delta_padded_16_.resize(sample_count,
+                                   vec16_t(params_.in_padded.size(), half(0)));
+  }
+
   std::vector<index3d<size_t>> in_shape() const override {
     if (params_.has_bias) {
       return {params_.in, params_.weight,

@@ -24,6 +24,30 @@ std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array) {
     return array_half;
 }
 
+tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array) {
+    // half型で表現可能な最小値を取得
+    float min_half_value = std::numeric_limits<half>::min();
+    float max_half_value = std::numeric_limits<half>::max();
+    tiny_dnn::vec16_t array_half(array.size());
+    tiny_dnn::for_i(array.size(), [&](size_t i) {
+        
+        // array[i]が表せる下限の場合0を代入
+        if (array[i] > 0 && array[i] < min_half_value) {
+            array_half[i] = min_half_value;
+        } else if (array[i] < 0 && array[i] > -min_half_value) {
+            array_half[i] = -min_half_value;
+        } else if (array[i] > max_half_value) {
+            array_half[i] = max_half_value;
+        } else if (array[i] < -max_half_value) {
+            array_half[i] = -max_half_value;
+        } else {
+            array_half[i] = half(array[i]);
+        }
+    });
+
+    return array_half;
+}
+
 std::vector<half> one_vector_to_half(const std::vector<size_t>& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
@@ -107,6 +131,38 @@ std::vector<std::vector<std::vector<half>>> three_vector_to_half(const std::vect
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<std::vector<std::vector<half>>> array_half(array.size());
+    // for (size_t i = 0; i < array.size(); ++i) {
+    tiny_dnn::for_i(array.size(), [&](size_t i) {
+        array_half[i].resize(array[i].size());
+
+        for (size_t j = 0; j < array[i].size(); ++j) {
+            array_half[i][j].resize(array[i][j].size());
+
+            for (size_t k = 0; k < array[i][j].size(); ++k) {
+                if (array[i][j][k] > 0 && array[i][j][k] < min_half_value) {
+                    array_half[i][j][k] = min_half_value;
+                } else if (array[i][j][k] < 0 && array[i][j][k] > -min_half_value) {
+                    array_half[i][j][k] = -min_half_value;
+                } else if (array[i][j][k] > max_half_value) {
+                    array_half[i][j][k] = max_half_value;
+                } else if (array[i][j][k] < -max_half_value) {
+                    array_half[i][j][k] = -max_half_value;
+                } else {
+                    array_half[i][j][k] = half(array[i][j][k]);
+                }
+                // array_half[i][j][k] = half(array[i][j][k]);
+            }
+        }
+    });
+    // }
+
+    return array_half;
+}
+
+std::vector<tiny_dnn::tensor16_t> three_vector_to_half16(const std::vector<tiny_dnn::tensor_t>& array) {
+    float min_half_value = std::numeric_limits<half>::min();
+    float max_half_value = std::numeric_limits<half>::max();
+    std::vector<tiny_dnn::tensor16_t> array_half(array.size());
     // for (size_t i = 0; i < array.size(); ++i) {
     tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());

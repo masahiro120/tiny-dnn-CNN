@@ -84,6 +84,18 @@ class relu_layer : public activation_layer {
 #endif
   }
 
+  void backward_activation16(const vec16_t &x,
+                             const vec16_t &y,
+                             vec16_t &dx,
+                             const vec16_t &dy) override {
+
+    for (size_t j = 0; j < x.size(); j++) {
+      // dx = dy * (gradient of relu)
+      dx[j] = dy[j] * (y[j] > half(0) ? half(1) : half(0));
+    }
+
+  }
+
   std::pair<float_t, float_t> scale() const override {
     return std::make_pair(float_t(0.1), float_t(0.9));
   }

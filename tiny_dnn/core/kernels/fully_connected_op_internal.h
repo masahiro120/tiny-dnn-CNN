@@ -100,6 +100,32 @@ inline void fully_connected_op_internal(const tensor_t &in_data,
 #endif
 }
 
+inline void fully_connected_op_internal(const tensor16_t &in_data,
+                                        const vec16_t &W,
+                                        const vec16_t &bias,
+                                        tensor16_t &out_data,
+                                        const core::fully_params &params,
+                                        const bool layer_parallelize) {
+
+  for_i(layer_parallelize, in_data.size(), [&](size_t sample) {
+    const vec16_t &in = in_data[sample];
+    vec16_t &out      = out_data[sample];
+
+    for (size_t i = 0; i < params.out_size_; i++) {
+      out[i] = half{0};
+      for (size_t c = 0; c < params.in_size_; c++) {
+        out[i] += W[c * params.out_size_ + i] * in[c];
+      }
+
+      if (params.has_bias_) {
+        out[i] += bias[i];
+      }
+    }
+  });
+
+}
+
+
 inline void fully_connected_op_internal(const tensor_t &prev_out,
                                         const vec_t &W,
                                         tensor_t &dW,
@@ -330,6 +356,46 @@ inline void fully_connected_op_internal(const tensor_t &prev_out,
 
 #endif
 }
+
+inline void fully_connected_op_internal(const tensor16_t &prev_out,
+                                        const vec16_t &W,
+                                        tensor16_t &dW,
+                                        tensor16_t &db,
+                                        tensor16_t &curr_delta,
+                                        tensor16_t &prev_delta,
+                                        const core::fully_params &params,
+                                        const bool layer_parallelize) {
+
+  for (size_t sample = 0; sample < prev_out.size(); sample++) {
+    for (size_t c = 0; c < params.in_size_; c++) {
+      // propagate delta to previous layer
+      // prev_delta[c] += current_delta[r] * W_[c * out_size_ + r]
+      for (size_t i = 0; i < params.out_size_; i++) {
+        prev_delta[sample][c] += curr_delta[sample][i] * W[c * params.out_size_ + i];
+      }
+    }
+
+    // dWをhalf型で計算
+    for_(layer_parallelize, 0, params.out_size_, [&](const blocked_range &r) {
+      // accumulate weight-step using delta
+      // dW[c * out_size + i] += current_delta[i] * prev_out[c]
+      for (size_t c = 0; c < params.in_size_; c++) {
+        for (size_t i = r.begin(); i < r.end(); i++) {
+          dW[sample][c * params.out_size_ + i] += curr_delta[sample][i] * prev_out[sample][c];
+        }
+      }
+      
+      if (params.has_bias_) {
+        // vec_t& db = *in_grad[2];
+        for (size_t i = r.begin(); i < r.end(); i++) {
+          db[sample][i] += curr_delta[sample][i];
+        }
+      }
+    });
+  }
+
+}
+
 
 }  // namespace kernels
 }  // namespace tiny_dnn

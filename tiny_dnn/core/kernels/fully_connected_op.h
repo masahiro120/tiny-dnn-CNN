@@ -64,6 +64,24 @@ class FullyConnectedOp : public core::OpKernel {
   }
 
   void compute16(core::OpKernelContext &context) override {
+    auto params = OpKernel::params_->fully();
+
+    // incomimg/outcoming data
+    const tensor16_t &in_data = context.input16(0);
+    const tensor16_t &W       = context.input16(1);
+    const tensor16_t *bias    = params.has_bias_ ? &context.input16(2) : nullptr;
+    tensor16_t &out_data      = context.output16(0);
+
+    // initialize outputs
+    fill_tensor(out_data, half{0});
+
+    // call the algorithm depending  on the selected engine type
+
+    const core::backend_t engine = context.engine();
+
+    kernels::fully_connected_op_internal(
+      in_data, W[0], params.has_bias_ ? (*bias)[0] : vec16_t(), out_data,
+      params, context.parallelize());
   }
 };
 

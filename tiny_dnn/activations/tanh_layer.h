@@ -13,6 +13,9 @@
 #include "../activations/activation_layer.h"
 #include "../layers/layer.h"
 
+#include "../half.hpp"
+using namespace half_float;
+
 namespace tiny_dnn {
 
 class tanh_layer : public activation_layer {
@@ -40,6 +43,16 @@ class tanh_layer : public activation_layer {
     for (size_t j = 0; j < x.size(); j++) {
       // dx = dy * (gradient of tanh)
       dx[j] = dy[j] * (float_t(1) - sqr(y[j]));
+    }
+  }
+
+  void backward_activation16(const vec16_t &x,
+                             const vec16_t &y,
+                             vec16_t &dx,
+                             const vec16_t &dy) override {
+    for (size_t j = 0; j < x.size(); j++) {
+      // dx = dy * (gradient of tanh)
+      dx[j] = dy[j] * (half(1) - sqr(y[j]));
     }
   }
 

@@ -150,6 +150,20 @@ class dropout_layer : public layer {
                           const std::vector<tensor16_t *> &out_data,
                           std::vector<tensor16_t *> &out_grad,
                           std::vector<tensor16_t *> &in_grad) override {
+    tensor16_t &prev_delta       = *in_grad[0];
+    const tensor16_t &curr_delta = *out_grad[0];
+
+    CNN_UNREFERENCED_PARAMETER(in_data);
+    CNN_UNREFERENCED_PARAMETER(out_data);
+
+    for_i(prev_delta.size(), [&](size_t sample) {
+      // assert(prev_delta[sample].size() == curr_delta[sample].size());
+      // assert(mask_[sample].size() == prev_delta[sample].size());
+      size_t sz = prev_delta[sample].size();
+      for (size_t i = 0; i < sz; ++i) {
+        prev_delta[sample][i] = mask_[sample][i] * curr_delta[sample][i];
+      }
+    });
   }
 
   void forward_propagation(const std::vector<tensor_t *> &in_data,
@@ -277,6 +291,35 @@ class dropout_layer : public layer {
 
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
                                std::vector<tensor16_t *> &out_data) override {
+    tiny_dnn::set_random_seed(123);
+
+    const tensor16_t &in = *in_data[0];
+    tensor16_t &out      = *out_data[0];
+
+    const size_t sample_count = in.size();
+
+    if (mask_.size() < sample_count) {
+      mask_.resize(sample_count, mask_[0]);
+    }
+
+    for_i(sample_count, [&](size_t sample) {
+      std::vector<uint8_t> &mask = mask_[sample];
+
+      const vec16_t &in_vec = in[sample];
+      vec16_t &out_vec      = out[sample];
+
+      if (phase_ == net_phase::train) {
+        for (size_t i = 0; i < in_vec.size(); i++)
+          mask[i]     = bernoulli(dropout_rate_);
+
+        for (size_t i = 0; i < in_vec.size(); i++)
+          out_vec[i]  = mask[i] * scale_ * in_vec[i];
+      } else {
+        for (size_t i = 0, end = in_vec.size(); i < end; i++)
+          out_vec[i] = in_vec[i];
+      }
+    });
+
   }
 
   /**

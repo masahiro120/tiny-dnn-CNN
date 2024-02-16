@@ -61,6 +61,22 @@ class MaxPoolOp : public core::OpKernel {
   }
 
   void compute16(core::OpKernelContext &context) override {
+    auto &params = OpKernel::params_->maxpool();
+
+    // incomimg/outcoming data
+    const tensor16_t &in_data = context.input16(0);
+    tensor16_t &out_data      = context.output16(0);
+
+    // initialize outputs
+    fill_tensor(out_data, half{0});
+
+    // call convolution algorithm depending
+    // on the selected engine type
+
+    const core::backend_t engine = context.engine();
+
+    kernels::maxpool_op_internal(in_data, out_data, params.out2inmax,
+                                  params.out2in, context.parallelize());
   }
 };
 

@@ -784,65 +784,49 @@ void conv2d_op_internal16(const tensor16_t &prev_out,
                         tensor16_t &prev_delta,
                         const core::conv_params &params,
                         const bool parallelize) {
-  std::cout << "prev_delta.size() = " << prev_delta.size() << std::endl;
-  std::cout << "prev_delta[0].size() = " << prev_delta[0].size() << std::endl;
-
   // printf("conv backward\n");
   typedef typename vec_t::value_type float_t;
 
-std::cout << "prev_out" << std::endl;
-for_i(parallelize, prev_out.size(), [&](size_t sample) {
-  std::cout << "Processing sample: " << sample << std::endl;
-  
-  for (size_t inc = 0; inc < params.in.depth_; inc++) {
-    for (size_t outc = 0; outc < params.out.depth_; outc++) {
-      std::cout << "  Connecting outc: " << outc << " to inc: " << inc << std::endl;
-      
-      if (!params.tbl.is_connected(outc, inc)) {
-        std::cout << "    Not connected, skipping\n";
-        continue;
-      }
+  for_i(parallelize, prev_out.size(), [&](size_t sample) {
+    // propagate delta to previous layer
+    for (size_t inc = 0; inc < params.in.depth_; inc++) {
+      for (size_t outc = 0; outc < params.out.depth_; outc++) {
+        if (!params.tbl.is_connected(outc, inc)) continue;
 
-      size_t idx = params.in.depth_ * outc + inc;
-      std::cout << "    Initial idx for W: " << idx << std::endl;
+        size_t idx        = 0;
+        idx               = params.in.depth_ * outc + inc;
+        idx               = params.weight.get_index(0, 0, idx);
+        const half *pw = &W[idx];
 
-      idx = params.weight.get_index(0, 0, idx);
-      const half *pw = &W[idx];
-      std::cout << "    Adjusted idx for W: " << idx << std::endl;
+        idx                       = params.out.get_index(0, 0, outc);
+        const half *pdelta_src = &curr_delta[sample][idx];
 
-      idx = params.out.get_index(0, 0, outc);
-      const half *pdelta_src = &curr_delta[sample][idx];
-      std::cout << "    idx for curr_delta: " << idx << std::endl;
+        idx = params.in_padded.get_index(0, 0, inc);
+        // half* pdelta_dst = &(*prev_delta)[sample][idx];
+        half *pdelta_dst = &prev_delta[sample][idx];
 
-      idx = params.in_padded.get_index(0, 0, inc);
-      half *pdelta_dst = &prev_delta[sample][idx];
-      std::cout << "    idx for prev_delta (pdelta_dst): " << idx << std::endl;
+        for (size_t y = 0; y < params.out.height_; y++) {
+          for (size_t x = 0; x < params.out.width_; x++) {
+            const half *ppw = pw;
 
-      for (size_t y = 0; y < params.out.height_; y++) {
-        for (size_t x = 0; x < params.out.width_; x++) {
-          const half *ppw = pw;
-          idx = y * params.out.width_ + x;
-          const half ppdelta_src = pdelta_src[idx];
-          std::cout << "      Processing x: " << x << ", y: " << y << " with idx: " << idx << std::endl;
+            idx                       = y * params.out.width_ + x;
+            const half ppdelta_src = pdelta_src[idx];
 
-          half *ppdelta_dst = pdelta_dst + y * params.h_stride * params.in_padded.width_ + x * params.w_stride;
+            half *ppdelta_dst =
+              pdelta_dst + y * params.h_stride * params.in_padded.width_ +
+              x * params.w_stride;
 
-          for (size_t wy = 0; wy < params.weight.height_; wy++) {
-            for (size_t wx = 0; wx < params.weight.width_; wx++) {
-              idx = wy * params.in_padded.width_ + wx;
-              std::cout << "        Updating ppdelta_dst with idx: " << idx << std::endl;
-              ppdelta_dst[idx] += *ppw++ * ppdelta_src;
+            for (size_t wy = 0; wy < params.weight.height_; wy++) {   // NOLINT
+              for (size_t wx = 0; wx < params.weight.width_; wx++) {  // NOLINT
+                idx = wy * params.in_padded.width_ + wx;
+                ppdelta_dst[idx] += *ppw++ * ppdelta_src;
+              }
             }
           }
         }
       }
     }
-  }
-});
 
-
-  std::cout << "dW" << std::endl;
-  for_i(parallelize, prev_out.size(), [&](size_t sample) {
     // accumulate dw_chedW
     for (size_t inc = 0; inc < params.in.depth_; inc++) {
       for (size_t outc = 0; outc < params.out.depth_; outc++) {
@@ -892,10 +876,7 @@ for_i(parallelize, prev_out.size(), [&](size_t sample) {
         }
       }
     }
-  });
 
-  std::cout << "db" << std::endl;
-  for_i(parallelize, prev_out.size(), [&](size_t sample) {
     // accumulate db
     if (params.has_bias) {
       for (size_t outc = 0; outc < params.out.depth_; outc++) {

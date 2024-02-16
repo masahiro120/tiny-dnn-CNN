@@ -52,6 +52,27 @@ class FullyConnectedGradOp : public core::OpKernel {
   }
 
   void compute16(core::OpKernelContext &context) override {
+    auto params = OpKernel::params_->fully();
+
+    // incoming/outcoming data
+    const tensor16_t &prev_out = context.input16(0);
+    const tensor16_t &W        = context.input16(1);
+    tensor16_t &dW             = context.input_grad16(1);
+    tensor16_t *db         = params.has_bias_ ? &context.input_grad16(2) : nullptr;
+    tensor16_t &prev_delta = context.input_grad16(0);
+    tensor16_t &curr_delta = context.output_grad16(0);
+    tensor16_t dummy;  // need lvalue for non-const reference
+
+    // initialize outputs
+    fill_tensor(prev_delta, half{0});
+
+    // call the algorithm depending on the selected engine type
+
+    const core::backend_t engine = context.engine();
+
+    kernels::fully_connected_op_internal(
+      prev_out, W[0], dW, params.has_bias_ ? *db : dummy, curr_delta,
+      prev_delta, params, context.parallelize());
   }
 };
 

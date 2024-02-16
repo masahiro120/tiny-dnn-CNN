@@ -270,6 +270,9 @@ class nodes {
     size_t sample_count  = input.size();
     size_t channel_count = input[0].size();
 
+    // std::cout << "sample_count: " << sample_count << std::endl;
+    // std::cout << "channel_count: " << channel_count << std::endl;
+
     output.resize(channel_count);
     for (size_t i = 0; i < channel_count; ++i) {
       output[i].resize(sample_count);
@@ -288,6 +291,9 @@ class nodes {
     std::vector<std::vector<const vec16_t *>> &output) {
     size_t sample_count  = input.size();
     size_t channel_count = input[0].size();
+
+    // std::cout << "sample_count: " << sample_count << std::endl;
+    // std::cout << "channel_count: " << channel_count << std::endl;
 
     output.resize(channel_count);
     for (size_t i = 0; i < channel_count; ++i) {

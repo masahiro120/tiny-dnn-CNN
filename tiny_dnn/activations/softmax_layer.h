@@ -156,6 +156,36 @@ class softmax_layer : public activation_layer {
     
   }
 
+  void backward_activation16(const vec16_t &x,
+                             const vec16_t &y,
+                             vec16_t &dx,
+                             const vec16_t &dy) override {
+#if HAS_CXX11_THREAD_LOCAL
+    thread_local
+#endif
+
+    const size_t len = dy.size();
+    std::vector<float> dx_test(len, 0.0f); // 中間計算用の高精度ベクター
+
+    for (size_t i = 0; i < len; ++i) {
+        float sum = 0.0f;
+        for (size_t j = 0; j < len; ++j) {
+            if (i == j) {
+                sum += static_cast<float>(dy[j]) * static_cast<float>(y[i]) * (1.0f - static_cast<float>(y[i]));
+            } else {
+                sum -= static_cast<float>(dy[j]) * static_cast<float>(y[i]) * static_cast<float>(y[j]);
+            }
+        }
+        dx_test[i] = sum; // 直接floatで計算
+    }
+
+    // 結果をhalfに変換
+    for (size_t i = 0; i < len; ++i) {
+        dx[i] = static_cast<half>(dx_test[i]);
+    }
+        
+  }
+
   std::pair<float_t, float_t> scale() const override {
     return std::make_pair(float_t(0), float_t(1));
   }

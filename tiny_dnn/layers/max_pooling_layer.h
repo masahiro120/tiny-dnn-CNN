@@ -141,6 +141,13 @@ class max_pooling_layer : public layer {
 
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
                                std::vector<tensor16_t *> &out_data) override {
+    // forward convolutional op context
+    fwd_ctx_.set_in_out(in_data, out_data);
+    fwd_ctx_.setParallelize(layer::parallelize());
+    fwd_ctx_.setEngine(layer::engine());
+
+    // launch convolutional kernel
+    kernel_fwd_->compute16(fwd_ctx_);
   }
 
   void back_propagation(const std::vector<tensor_t *> &in_data,
@@ -160,6 +167,13 @@ class max_pooling_layer : public layer {
                           const std::vector<tensor16_t *> &out_data,
                           std::vector<tensor16_t *> &out_grad,
                           std::vector<tensor16_t *> &in_grad) override {
+    // backward convolutional op context
+    bwd_ctx_.set_in_out(in_data, out_data, out_grad, in_grad);
+    bwd_ctx_.setParallelize(layer::parallelize());
+    bwd_ctx_.setEngine(layer::engine());
+
+    // launch convolutional kernel
+    kernel_back_->compute16(bwd_ctx_);
   }
 
   std::vector<index3d<size_t>> in_shape() const override {
@@ -182,6 +196,12 @@ class max_pooling_layer : public layer {
 
   void set_sample_count(size_t sample_count) override {
     layer::set_sample_count(sample_count);
+    params_.out2inmax.resize(sample_count,
+                             std::vector<size_t>(params_.out.size()));
+  }
+
+  void set_sample_count16(size_t sample_count) override {
+    layer::set_sample_count16(sample_count);
     params_.out2inmax.resize(sample_count,
                              std::vector<size_t>(params_.out.size()));
   }

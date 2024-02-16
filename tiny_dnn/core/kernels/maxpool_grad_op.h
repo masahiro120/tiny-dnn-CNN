@@ -46,6 +46,22 @@ class MaxPoolGradOp : public core::OpKernel {
   }
 
   void compute16(core::OpKernelContext &context) override {
+    auto &params = OpKernel::params_->maxpool();
+
+    // incoming/outcoming data
+    tensor16_t &prev_delta = context.input_grad16(0);
+    tensor16_t &curr_delta = context.output_grad16(0);
+
+    // initialize outputs
+    fill_tensor(prev_delta, half{0});
+
+    // call the algorithm depending on the selected engine type
+
+    const core::backend_t engine = context.engine();
+
+    kernels::maxpool_grad_op_internal(prev_delta, curr_delta,
+                                      params.out2inmax, params.in2out,
+                                      context.parallelize());
   }
 };
 

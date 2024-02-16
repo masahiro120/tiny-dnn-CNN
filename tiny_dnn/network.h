@@ -232,9 +232,9 @@ class network {
     std::vector<tensor16_t> delta = gradient<E>(out, t, t_cost);
 
     // deltaのサイズ
-    std::cout << "delta.size() = " << delta.size() << std::endl;
-    std::cout << "delta[0].size() = " << delta[0].size() << std::endl;
-    std::cout << "delta[0][0].size() = " << delta[0][0].size() << std::endl;
+    // std::cout << "delta.size() = " << delta.size() << std::endl;
+    // std::cout << "delta[0].size() = " << delta[0].size() << std::endl;
+    // std::cout << "delta[0][0].size() = " << delta[0][0].size() << std::endl;
 
     net_.backward(delta);
   }

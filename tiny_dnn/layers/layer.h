@@ -222,6 +222,9 @@ class layer : public node {
     for (size_t i = 0; i < out_channels_; i++) {
       if (out_type_[i] != vector_type::data) continue;
       tensor_t &dst_grad = *ith_out_node(i)->get_gradient();
+      std::cout << "dst_grad.size() = " << dst_grad.size() << std::endl;
+      std::cout << "dst_grad[0].size() = " << dst_grad[0].size() << std::endl;
+
       assert(n < cnt);
       const auto &src_grad = grad[n++];
       size_t sz            = src_grad.size();
@@ -685,6 +688,11 @@ class layer : public node {
       bwd_out_data_16_[i] = nd->get_data16();
       bwd_out_grad_16_[i] = nd->get_gradient16();
     }
+
+    // bwd_in_grad_16_のサイズを確認
+    // std::cout << "bwd_in_grad_16_.size() = " << bwd_in_grad_16_.size() << std::endl;
+    // std::cout << "bwd_in_grad_16_[0].size() = " << bwd_in_grad_16_[0]->size() << std::endl;
+
     back_propagation16(bwd_in_data_16_, bwd_out_data_16_, bwd_out_grad_16_, bwd_in_grad_16_);
   }
 

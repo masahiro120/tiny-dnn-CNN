@@ -101,6 +101,12 @@ class activation_layer : public layer {
                           const std::vector<tensor16_t *> &out_data,
                           std::vector<tensor16_t *> &out_grad,
                           std::vector<tensor16_t *> &in_grad) override {
+    tensor16_t &dx       = *in_grad[0];
+    const tensor16_t &dy = *out_grad[0];
+    const tensor16_t &x  = *in_data[0];
+    const tensor16_t &y  = *out_data[0];
+    for_i(x.size(),
+          [&](size_t i) { backward_activation16(x[i], y[i], dx[i], dy[i]); });
   }
 
   std::string layer_type() const override = 0;
@@ -130,6 +136,11 @@ class activation_layer : public layer {
                                    const vec_t &y,
                                    vec_t &dx,
                                    const vec_t &dy) = 0;
+
+  virtual void backward_activation16(const vec16_t &x,
+                                     const vec16_t &y,
+                                     vec16_t &dx,
+                                     const vec16_t &dy) = 0;
 
   /**
    * Target value range for learning.

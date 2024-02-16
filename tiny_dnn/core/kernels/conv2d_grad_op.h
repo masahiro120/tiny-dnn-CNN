@@ -65,7 +65,7 @@ class Conv2dGradOp : public core::OpKernel {
     // initalize outputs
     fill_tensor(prev_delta, half{0});
 
-    std::cout << "prev_delta.size() = " << prev_delta.size() << std::endl;
+    // std::cout << "prev_delta.size() = " << prev_delta.size() << std::endl;
 
     // call convolution algorithm depending
     // on the selected engine type
