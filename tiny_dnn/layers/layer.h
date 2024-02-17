@@ -891,7 +891,7 @@ class layer : public node {
       }
     }
     clear_grads16();
-    post_update16();
+    post_update();
   }
 
   bool has_same_weights(const layer &rhs, float_t eps) const {

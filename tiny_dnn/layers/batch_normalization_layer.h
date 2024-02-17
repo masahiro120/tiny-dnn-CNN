@@ -750,121 +750,121 @@ class batch_normalization_layer : public layer {
   void forward_propagation(const std::vector<tensor_t *> &in_data,
                            std::vector<tensor_t *> &out_data) override {}
 
-  // void forward_propagation16(const std::vector<tensor16_t *> &in_data,
-  //                              std::vector<tensor16_t *> &out_data) override {
-  //   std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
-  //   std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
-
-  //   for (size_t i = 0; i < in_data.size(); ++i) {
-  //       in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
-  //   }
-
-  //   for (size_t i = 0; i < out_data.size(); ++i) {
-  //       out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
-  //   }
-
-  //   std::vector<tensor_t> in_data_test(in_data.size());
-  //   std::vector<tensor_t> out_data_test(out_data.size());
-
-  //   for (size_t i = 0; i < in_data_val.size(); ++i) {
-  //     in_data_test[i].resize(in_data_val[i].size());
-  //     for (size_t j = 0; j < in_data_val[i].size(); ++j) {
-  //       in_data_test[i][j].resize(in_data_val[i][j].size());
-  //       for (size_t k = 0; k < in_data_val[i][j].size(); ++k) {
-  //         in_data_test[i][j][k] = (float)in_data_val[i][j][k];
-  //       }
-  //     }
-  //   }
-
-  //   for (size_t i = 0; i < out_data_val.size(); ++i) {
-  //     out_data_test[i].resize(out_data_val[i].size());
-  //     for (size_t j = 0; j < out_data_val[i].size(); ++j) {
-  //       out_data_test[i][j].resize(out_data_val[i][j].size());
-  //       for (size_t k = 0; k < out_data_val[i][j].size(); ++k) {
-  //         out_data_test[i][j][k] = (float)out_data_val[i][j][k];
-  //       }
-  //     }
-  //   }
-    
-  //   // std::vector<half> mean_half;
-  //   // std::vector<half> variance_half;
-
-  //   vec_t mean;
-  //   vec_t variance;
-
-  //   if (phase_ == net_phase::train) {
-  //     // calculate mean/variance from this batch in train phase
-  //     // mean_half = one_vector_to_half(mean_current_);
-  //     // variance_half = one_vector_to_half(variance_current_);
-  //     mean = mean_current_;
-  //     variance = variance_current_;
-  //     // moments_half(in_data_half[0], in_spatial_size_, in_channels_, mean, variance);
-  //     moments(in_data_test[0], in_spatial_size_, in_channels_, mean, variance);
-  //   } else {
-  //     // mean_half = one_vector_to_half(mean_);
-  //     // variance_half = one_vector_to_half(variance_);
-  //     mean = mean_;
-  //     variance = variance_;
-  //   }
-
-  //   // std::vector<half> stddev_half = one_vector_to_half(stddev_);
-  //   vec_t stddev = stddev_;
-
-  //   for (size_t i = 0; i < in_channels_; i++) {
-  //     // stddev_half[i] = sqrt(variance_half[i] + half(eps_));
-  //     stddev[i] = sqrt(variance[i] + float(eps_));
-  //     if (stddev[i] <= half(0) || std::isnan(stddev[i])) {
-  //       printf("stddev[%d] = %f, variance[%d] = %f, eps_ = %f\n", i, (float)stddev[i], i, (float)variance[i], (float)eps_);
-  //     }
-  //   }
-
-  //   for_i(in_data[0]->size(), [&](size_t i) {
-  //     for (size_t j = 0; j < in_channels_; j++) {
-  //       // half m = (half)(mean[j]);
-  //       float m = mean[j];
-
-  //       for (size_t k = 0; k < in_spatial_size_; k++) {
-  //         // out_data_half[0][i][j * in_spatial_size_ + k] = (in_data_half[0][i][j * in_spatial_size_ + k] - m) / stddev[j];
-  //         out_data_test[0][i][j * in_spatial_size_ + k] = (in_data_test[0][i][j * in_spatial_size_ + k] - m) / stddev[j];
-  //       }
-  //     }
-  //   });
-
-
-  //   if (phase_ == net_phase::train && update_immidiately_) {
-  //     // one_half_to_vector(mean_, mean_half);
-  //     // one_half_to_vector(variance_, variance_half);
-  //     mean_     = mean;
-  //     variance_ = variance;
-  //   } else {
-  //     // one_half_to_vector(mean_current_, mean_half);
-  //     // one_half_to_vector(variance_current_, variance_half);
-  //     mean_current_ = mean;
-  //     variance_current_ = variance;
-  //   }
-
-  //   // one_half_to_vector(stddev_, stddev_half);
-  //   stddev_ = stddev;
-
-  //   out_data_val = three_vector_to_half16(out_data_test);
-
-  //   // out_dataにnanが含まれているかどうかを確認します。
-  //   for (size_t i = 0; i < out_data_val[0].size(); i++) {
-  //     for (size_t j = 0; j < out_data_val[0][0].size(); j++) {
-  //       if (std::isnan(out_data_val[0][i][j])) {
-  //         printf("out_data_val[%d][%d] = %f\n", i, j, (float)out_data_val[0][i][j]);
-  //       }
-  //     }
-  //   }
-    
-  //   for (size_t i = 0; i < out_data.size(); ++i) {
-  //       *(out_data[i]) = out_data_val[i]; // ポインタのデリファレンス
-  //   }
-
-  // }
-
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
-                               std::vector<tensor16_t *> &out_data) override {}
+                               std::vector<tensor16_t *> &out_data) override {
+    std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    std::vector<tensor_t> in_data_test(in_data.size());
+    std::vector<tensor_t> out_data_test(out_data.size());
+
+    for (size_t i = 0; i < in_data_val.size(); ++i) {
+      in_data_test[i].resize(in_data_val[i].size());
+      for (size_t j = 0; j < in_data_val[i].size(); ++j) {
+        in_data_test[i][j].resize(in_data_val[i][j].size());
+        for (size_t k = 0; k < in_data_val[i][j].size(); ++k) {
+          in_data_test[i][j][k] = (float)in_data_val[i][j][k];
+        }
+      }
+    }
+
+    for (size_t i = 0; i < out_data_val.size(); ++i) {
+      out_data_test[i].resize(out_data_val[i].size());
+      for (size_t j = 0; j < out_data_val[i].size(); ++j) {
+        out_data_test[i][j].resize(out_data_val[i][j].size());
+        for (size_t k = 0; k < out_data_val[i][j].size(); ++k) {
+          out_data_test[i][j][k] = (float)out_data_val[i][j][k];
+        }
+      }
+    }
+    
+    // std::vector<half> mean_half;
+    // std::vector<half> variance_half;
+
+    vec_t mean;
+    vec_t variance;
+
+    if (phase_ == net_phase::train) {
+      // calculate mean/variance from this batch in train phase
+      // mean_half = one_vector_to_half(mean_current_);
+      // variance_half = one_vector_to_half(variance_current_);
+      mean = mean_current_;
+      variance = variance_current_;
+      // moments_half(in_data_half[0], in_spatial_size_, in_channels_, mean, variance);
+      moments(in_data_test[0], in_spatial_size_, in_channels_, mean, variance);
+    } else {
+      // mean_half = one_vector_to_half(mean_);
+      // variance_half = one_vector_to_half(variance_);
+      mean = mean_;
+      variance = variance_;
+    }
+
+    // std::vector<half> stddev_half = one_vector_to_half(stddev_);
+    vec_t stddev = stddev_;
+
+    for (size_t i = 0; i < in_channels_; i++) {
+      // stddev_half[i] = sqrt(variance_half[i] + half(eps_));
+      stddev[i] = sqrt(variance[i] + float(eps_));
+      if (stddev[i] <= half(0) || std::isnan(stddev[i])) {
+        printf("stddev[%d] = %f, variance[%d] = %f, eps_ = %f\n", i, (float)stddev[i], i, (float)variance[i], (float)eps_);
+      }
+    }
+
+    for_i(in_data[0]->size(), [&](size_t i) {
+      for (size_t j = 0; j < in_channels_; j++) {
+        // half m = (half)(mean[j]);
+        float m = mean[j];
+
+        for (size_t k = 0; k < in_spatial_size_; k++) {
+          // out_data_half[0][i][j * in_spatial_size_ + k] = (in_data_half[0][i][j * in_spatial_size_ + k] - m) / stddev[j];
+          out_data_test[0][i][j * in_spatial_size_ + k] = (in_data_test[0][i][j * in_spatial_size_ + k] - m) / stddev[j];
+        }
+      }
+    });
+
+
+    if (phase_ == net_phase::train && update_immidiately_) {
+      // one_half_to_vector(mean_, mean_half);
+      // one_half_to_vector(variance_, variance_half);
+      mean_     = mean;
+      variance_ = variance;
+    } else {
+      // one_half_to_vector(mean_current_, mean_half);
+      // one_half_to_vector(variance_current_, variance_half);
+      mean_current_ = mean;
+      variance_current_ = variance;
+    }
+
+    // one_half_to_vector(stddev_, stddev_half);
+    stddev_ = stddev;
+
+    out_data_val = three_vector_to_half16(out_data_test);
+
+    // out_dataにnanが含まれているかどうかを確認します。
+    for (size_t i = 0; i < out_data_val[0].size(); i++) {
+      for (size_t j = 0; j < out_data_val[0][0].size(); j++) {
+        if (std::isnan(out_data_val[0][i][j])) {
+          printf("out_data_val[%d][%d] = %f\n", i, j, (float)out_data_val[0][i][j]);
+        }
+      }
+    }
+    
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        *(out_data[i]) = out_data_val[i]; // ポインタのデリファレンス
+    }
+
+  }
+
+  // void forward_propagation16(const std::vector<tensor16_t *> &in_data,
+  //                              std::vector<tensor16_t *> &out_data) override {}
 
   void set_context(net_phase ctx) override { phase_ = ctx; }
 
