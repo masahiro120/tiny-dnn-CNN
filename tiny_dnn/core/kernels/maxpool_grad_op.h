@@ -59,9 +59,48 @@ class MaxPoolGradOp : public core::OpKernel {
 
     const core::backend_t engine = context.engine();
 
+    #if MAXPOOL_F_HALF == 0
+    // 入力データをfloatに変換
+    tensor_t prev_delta_float;
+    for (size_t i = 0; i < prev_delta.size(); i++) {
+      prev_delta_float.push_back(vec_t());
+      for (size_t j = 0; j < prev_delta[i].size(); j++) {
+        prev_delta_float[i].push_back(float(prev_delta[i][j]));
+      }
+    }
+
+    tensor_t curr_delta_float;
+    for (size_t i = 0; i < curr_delta.size(); i++) {
+      curr_delta_float.push_back(vec_t());
+      for (size_t j = 0; j < curr_delta[i].size(); j++) {
+        curr_delta_float[i].push_back(float(curr_delta[i][j]));
+      }
+    }
+
+    kernels::maxpool_grad_op_internal(prev_delta_float, curr_delta_float,
+                                      params.out2inmax, params.in2out,
+                                      context.parallelize());
+
+    // floatに変換したデータをhalfに変換
+    for (size_t i = 0; i < prev_delta.size(); i++) {
+      for (size_t j = 0; j < prev_delta[i].size(); j++) {
+        prev_delta[i][j] = half(prev_delta_float[i][j]);
+      }
+    }
+
+    for (size_t i = 0; i < curr_delta.size(); i++) {
+      for (size_t j = 0; j < curr_delta[i].size(); j++) {
+        curr_delta[i][j] = half(curr_delta_float[i][j]);
+      }
+    }
+
+    #else
+
     kernels::maxpool_grad_op_internal(prev_delta, curr_delta,
                                       params.out2inmax, params.in2out,
                                       context.parallelize());
+
+    #endif
   }
 };
 

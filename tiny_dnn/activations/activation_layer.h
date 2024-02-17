@@ -82,7 +82,7 @@ class activation_layer : public layer {
                                std::vector<tensor16_t *> &out_data) override {
     const tensor16_t &x = *in_data[0];
     tensor16_t &y       = *out_data[0];
-    // for_i(x.size(), [&](size_t i) { forward_activation(x[i], y[i]); });
+    for_i(x.size(), [&](size_t i) { forward_activation16(x[i], y[i]); });
   }
 
   void back_propagation(const std::vector<tensor_t *> &in_data,
