@@ -1,16 +1,16 @@
 #pragma once
 
-#define CONV_F_HALF 0
-#define CONV_B_HALF 0
+#define CONV_F_HALF 1
+#define CONV_B_HALF 1
 
-#define FC_F_HALF 0
-#define FC_B_HALF 0
+#define FC_F_HALF 1
+#define FC_B_HALF 1
 
-#define MAX_POOLING_F_HALF 0
-#define MAX_POOLING_B_HALF 0
+#define MAX_POOLING_F_HALF 1
+#define MAX_POOLING_B_HALF 1
 
-#define RELU_F_HALF 0
-#define RELU_B_HALF 0
+#define RELU_F_HALF 1
+#define RELU_B_HALF 1
 
 #define SOFTMAX_F_HALF 1
 // 要確認 改善済み
