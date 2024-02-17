@@ -23,8 +23,12 @@ using namespace half_float;
 // #define FC_B_HALF 1
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
+tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
+tiny_dnn::tensor16_t two_vector_to_half16(const tiny_dnn::tensor_t& array);
+void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half);
 void two_half_to_vector(tiny_dnn::tensor_t& array, std::vector<std::vector<half>> array_half);
+void two_half_to_vector(tiny_dnn::tensor_t& array, tiny_dnn::tensor16_t array_half);
 
 namespace tiny_dnn {
 namespace kernels {
@@ -106,7 +110,7 @@ inline void fully_connected_op_internal(const tensor16_t &in_data,
                                         tensor16_t &out_data,
                                         const core::fully_params &params,
                                         const bool layer_parallelize) {
-
+#if FC_F_HALF == 1
   for_i(layer_parallelize, in_data.size(), [&](size_t sample) {
     const vec16_t &in = in_data[sample];
     vec16_t &out      = out_data[sample];
@@ -122,7 +126,36 @@ inline void fully_connected_op_internal(const tensor16_t &in_data,
       }
     }
   });
+#else
 
+  tensor_t in_data_float;
+  two_half_to_vector(in_data_float, in_data);
+  vec_t W_float;
+  one_half_to_vector(W_float, W);
+  vec_t bias_float;
+  one_half_to_vector(bias_float, bias);
+  tensor_t out_data_float;
+  two_half_to_vector(out_data_float, out_data);
+
+  for_i(layer_parallelize, in_data_float.size(), [&](size_t sample) {
+    const vec_t &in = in_data_float[sample];
+    vec_t &out      = out_data_float[sample];
+
+    for (size_t i = 0; i < params.out_size_; i++) {
+      out[i] = float_t{0};
+      for (size_t c = 0; c < params.in_size_; c++) {
+        out[i] += W_float[c * params.out_size_ + i] * in[c];
+      }
+
+      if (params.has_bias_) {
+        out[i] += bias_float[i];
+      }
+    }
+  });
+
+  out_data = two_vector_to_half16(out_data_float);
+
+#endif
 }
 
 
@@ -365,7 +398,7 @@ inline void fully_connected_op_internal(const tensor16_t &prev_out,
                                         tensor16_t &prev_delta,
                                         const core::fully_params &params,
                                         const bool layer_parallelize) {
-
+#if FC_B_HALF == 1
   for (size_t sample = 0; sample < prev_out.size(); sample++) {
     for (size_t c = 0; c < params.in_size_; c++) {
       // propagate delta to previous layer
@@ -393,7 +426,52 @@ inline void fully_connected_op_internal(const tensor16_t &prev_out,
       }
     });
   }
+#else
 
+  tensor_t prev_out_float;
+  two_half_to_vector(prev_out_float, prev_out);
+  vec_t W_float;
+  one_half_to_vector(W_float, W);
+  tensor_t curr_delta_float;
+  two_half_to_vector(curr_delta_float, curr_delta);
+  tensor_t prev_delta_float;
+  two_half_to_vector(prev_delta_float, prev_delta);
+  tensor_t dW_float;
+  two_half_to_vector(dW_float, dW);
+  tensor_t db_float;
+  two_half_to_vector(db_float, db);
+
+  for (size_t sample = 0; sample < prev_out_float.size(); sample++) {
+    for (size_t c = 0; c < params.in_size_; c++) {
+      // propagate delta to previous layer
+      // prev_delta_float[c] += current_delta[r] * W_[c * out_size_ + r]
+      prev_delta_float[sample][c] += vectorize::dot(
+        &curr_delta_float[sample][0], &W_float[c * params.out_size_], params.out_size_);
+    }
+
+    for_(layer_parallelize, 0, params.out_size_, [&](const blocked_range &r) {
+      // accumulate weight-step using delta
+      // dW_float[c * out_size + i] += current_delta[i] * prev_out_float[c]
+      for (size_t c = 0; c < params.in_size_; c++) {
+        vectorize::muladd(&curr_delta_float[sample][r.begin()], prev_out_float[sample][c],
+                          r.end() - r.begin(),
+                          &dW_float[sample][c * params.out_size_ + r.begin()]);
+      }
+
+      if (params.has_bias_) {
+        // vec_t& db_float = *in_grad[2];
+        for (size_t i = r.begin(); i < r.end(); i++) {
+          db_float[sample][i] += curr_delta_float[sample][i];
+        }
+      }
+    });
+  }
+
+  prev_delta = two_vector_to_half16(prev_delta_float);
+  dW = two_vector_to_half16(dW_float);
+  db = two_vector_to_half16(db_float);
+
+#endif
 }
 
 

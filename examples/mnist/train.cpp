@@ -296,10 +296,10 @@ static void train_lenet(const std::string &data_dir_path,
     // float_t train_accuracy = (float_t)train_results.num_success * 100 / train_results.num_total;
     // std::cout << "train accuracy: " << train_accuracy << "% (" << train_results.num_success << "/" << train_results.num_total << ")" << std::endl;
 
-    std::cout << "calculate test accuracy" << std::endl;
-    tiny_dnn::result test_results = nn.test(test_images_half, test_labels);
-    float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
-    std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
+    // std::cout << "calculate test accuracy" << std::endl;
+    // tiny_dnn::result test_results = nn.test(test_images_half, test_labels);
+    // float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
+    // std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
     // std::cout << "train loss: " << train_loss << " test loss: " << test_loss << std::endl;
     // std::cout << "train accuracy: " << train_accuracy << "% test accuracy: " << test_accuracy << "%" << std::endl;
 
@@ -341,10 +341,10 @@ static void train_lenet(const std::string &data_dir_path,
     // float_t train_accuracy = (float_t)train_results.num_success * 100 / train_results.num_total;
     // std::cout << "train accuracy: " << train_accuracy << "% (" << train_results.num_success << "/" << train_results.num_total << ")" << std::endl;
 
-    std::cout << "calculate test accuracy" << std::endl;
-    tiny_dnn::result test_results = nn.test(test_images, test_labels);
-    float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
-    std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
+    // std::cout << "calculate test accuracy" << std::endl;
+    // tiny_dnn::result test_results = nn.test(test_images, test_labels);
+    // float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
+    // std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
     // std::cout << "train loss: " << train_loss << " test loss: " << test_loss << std::endl;
     // std::cout << "train accuracy: " << train_accuracy << "% test accuracy: " << test_accuracy << "%" << std::endl;
 

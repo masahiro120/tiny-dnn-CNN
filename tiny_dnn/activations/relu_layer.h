@@ -23,7 +23,9 @@
 using namespace half_float;
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
+tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array);
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
+void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half);
 
 namespace tiny_dnn {
 
@@ -53,11 +55,23 @@ class relu_layer : public activation_layer {
   }
 
   void forward_activation16(const vec16_t &x, vec16_t &y) override {
-
+#if RELU_F_HALF == 1
     for (size_t j = 0; j < x.size(); j++) {
       y[j] = std::max(half(0), x[j]);
     }
+#else
 
+    vec_t x_float;
+    one_half_to_vector(x_float, x);
+    vec_t y_float;
+    one_half_to_vector(y_float, y);
+
+    for (size_t j = 0; j < x.size(); j++) {
+      y_float[j] = std::max(float_t(0), x_float[j]);
+    }
+
+    y = one_vector_to_half16(y_float);
+#endif
   }
 
   void backward_activation(const vec_t &x,
@@ -88,12 +102,28 @@ class relu_layer : public activation_layer {
                              const vec16_t &y,
                              vec16_t &dx,
                              const vec16_t &dy) override {
-
+#if RELU_B_HALF == 1
     for (size_t j = 0; j < x.size(); j++) {
       // dx = dy * (gradient of relu)
       dx[j] = dy[j] * (y[j] > half(0) ? half(1) : half(0));
     }
+#else
+    vec_t x_float;
+    one_half_to_vector(x_float, x);
+    vec_t y_float;
+    one_half_to_vector(y_float, y);
+    vec_t dx_float;
+    one_half_to_vector(dx_float, dx);
+    vec_t dy_float;
+    one_half_to_vector(dy_float, dy);
 
+    for (size_t j = 0; j < x.size(); j++) {
+      // dx = dy * (gradient of relu)
+      dx_float[j] = dy_float[j] * (y_float[j] > float_t(0) ? float_t(1) : float_t(0));
+    }
+
+    dx = one_vector_to_half16(dx_float);
+#endif
   }
 
   std::pair<float_t, float_t> scale() const override {

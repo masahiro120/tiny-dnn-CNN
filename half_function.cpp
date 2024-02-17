@@ -71,6 +71,29 @@ std::vector<half> one_vector_to_half(const std::vector<size_t>& array) {
     return array_half;
 }
 
+tiny_dnn::vec16_t one_vector_to_half16(const std::vector<size_t>& array) {
+    float min_half_value = std::numeric_limits<half>::min();
+    float max_half_value = std::numeric_limits<half>::max();
+    tiny_dnn::vec16_t array_half(array.size());
+    // for (size_t i = 0; i < array.size(); ++i) {
+    tiny_dnn::for_i(array.size(), [&](size_t i) {
+        if (array[i] > 0 && array[i] < min_half_value) {
+            array_half[i] = min_half_value;
+        } else if (array[i] < 0 && array[i] > -min_half_value) {
+            array_half[i] = -min_half_value;
+        } else if (array[i] > max_half_value) {
+            array_half[i] = max_half_value;
+        } else if (array[i] < -max_half_value) {
+            array_half[i] = -max_half_value;
+        } else {
+            array_half[i] = half(array[i]);
+        }
+    });
+    // }
+
+    return array_half;
+}
+
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
@@ -99,10 +122,66 @@ std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& arra
     return array_half;
 }
 
+tiny_dnn::tensor16_t two_vector_to_half16(const tiny_dnn::tensor_t& array) {
+    float min_half_value = std::numeric_limits<half>::min();
+    float max_half_value = std::numeric_limits<half>::max();
+    tiny_dnn::tensor16_t array_half(array.size());
+    // for (size_t i = 0; i < array.size(); ++i) {
+    tiny_dnn::for_i(array.size(), [&](size_t i) {
+        array_half[i].resize(array[i].size());
+
+        for (size_t j = 0; j < array[i].size(); ++j) {
+            if (array[i][j] > 0 && array[i][j] < min_half_value) {
+                array_half[i][j] = min_half_value;
+            } else if (array[i][j] < 0 && array[i][j] > -min_half_value) {
+                array_half[i][j] = -min_half_value;
+            } else if (array[i][j] > max_half_value) {
+                array_half[i][j] = max_half_value;
+            } else if (array[i][j] < -max_half_value) {
+                array_half[i][j] = -max_half_value;
+            } else {
+                array_half[i][j] = half(array[i][j]);
+            }
+            // array_half[i][j] = half(array[i][j]);
+        }
+    });
+    // }
+
+    return array_half;
+}
+
 std::vector<std::vector<half>> two_vector_to_half(const std::vector<std::vector<size_t>>& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<std::vector<half>> array_half(array.size());
+    // for (size_t i = 0; i < array.size(); ++i) {
+    tiny_dnn::for_i(array.size(), [&](size_t i) {
+        array_half[i].resize(array[i].size());
+
+        for (size_t j = 0; j < array[i].size(); ++j) {
+            if (array[i][j] > 0 && array[i][j] < min_half_value) {
+                array_half[i][j] = min_half_value;
+            } else if (array[i][j] < 0 && array[i][j] > -min_half_value) {
+                array_half[i][j] = -min_half_value;
+            } else if (array[i][j] > max_half_value) {
+                array_half[i][j] = max_half_value;
+            } else if (array[i][j] < -max_half_value) {
+                array_half[i][j] = -max_half_value;
+            } else {
+                array_half[i][j] = half(array[i][j]);
+            }
+            // array_half[i][j] = half(array[i][j]);
+        }
+    });
+    // }
+
+    return array_half;
+}
+
+tiny_dnn::tensor16_t two_vector_to_half16(const std::vector<std::vector<size_t>>& array) {
+    float min_half_value = std::numeric_limits<half>::min();
+    float max_half_value = std::numeric_limits<half>::max();
+    tiny_dnn::tensor16_t array_half(array.size());
     // for (size_t i = 0; i < array.size(); ++i) {
     tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());
@@ -193,6 +272,16 @@ std::vector<tiny_dnn::tensor16_t> three_vector_to_half16(const std::vector<tiny_
 
 
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half) {
+  array.resize(array_half.size());
+  // for (size_t i = 0; i < array.size(); ++i) {
+  tiny_dnn::for_i(array.size(), [&](size_t i) {
+    array[i] = static_cast<float>(array_half[i]);
+  });
+  // }
+}
+
+void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half) {
+  array.resize(array_half.size());
   // for (size_t i = 0; i < array.size(); ++i) {
   tiny_dnn::for_i(array.size(), [&](size_t i) {
     array[i] = static_cast<float>(array_half[i]);
@@ -201,8 +290,22 @@ void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half) {
 }
 
 void two_half_to_vector(tiny_dnn::tensor_t& array, std::vector<std::vector<half>> array_half) {
+  array.resize(array_half.size());
   // for (size_t i = 0; i < array.size(); ++i) {
   tiny_dnn::for_i(array.size(), [&](size_t i) {
+    array[i].resize(array_half[i].size());
+    for (size_t j = 0; j < array[i].size(); ++j) {
+      array[i][j] = static_cast<float>(array_half[i][j]);
+    }
+  });
+  // }
+}
+
+void two_half_to_vector(tiny_dnn::tensor_t& array, tiny_dnn::tensor16_t array_half) {
+  array.resize(array_half.size());
+  // for (size_t i = 0; i < array.size(); ++i) {
+  tiny_dnn::for_i(array.size(), [&](size_t i) {
+    array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
       array[i][j] = static_cast<float>(array_half[i][j]);
     }
@@ -211,8 +314,10 @@ void two_half_to_vector(tiny_dnn::tensor_t& array, std::vector<std::vector<half>
 }
 
 void two_half_to_vector(std::vector<std::vector<size_t>>& array, std::vector<std::vector<half>> array_half) {
+  array.resize(array_half.size());
   // for (size_t i = 0; i < array.size(); ++i) {
   tiny_dnn::for_i(array.size(), [&](size_t i) {
+    array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
       array[i][j] = static_cast<float>(array_half[i][j]);
     }
@@ -221,9 +326,27 @@ void two_half_to_vector(std::vector<std::vector<size_t>>& array, std::vector<std
 }
 
 void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<std::vector<std::vector<half>>> array_half) {
+  array.resize(array_half.size());
   // for (size_t i = 0; i < array.size(); ++i) {
   tiny_dnn::for_i(array.size(), [&](size_t i) {
+    array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
+      array[i][j].resize(array_half[i][j].size());
+      for (size_t k = 0; k < array[i][j].size(); ++k) {
+        array[i][j][k] = static_cast<float>(array_half[i][j][k]);
+      }
+    }
+  });
+  // }
+}
+
+void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<tiny_dnn::tensor16_t> array_half) {
+  array.resize(array_half.size());
+  // for (size_t i = 0; i < array.size(); ++i) {
+  tiny_dnn::for_i(array.size(), [&](size_t i) {
+    array[i].resize(array_half[i].size());
+    for (size_t j = 0; j < array[i].size(); ++j) {
+      array[i][j].resize(array_half[i][j].size());
       for (size_t k = 0; k < array[i][j].size(); ++k) {
         array[i][j][k] = static_cast<float>(array_half[i][j][k]);
       }

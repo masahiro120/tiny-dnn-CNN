@@ -19,8 +19,10 @@ using namespace half_float;
 
 std::vector<half> one_vector_to_half(const std::vector<size_t>& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
+tiny_dnn::tensor16_t two_vector_to_half16(const tiny_dnn::tensor_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const std::vector<std::vector<size_t>>& array);
 void two_half_to_vector(tiny_dnn::tensor_t& array, std::vector<std::vector<half>> array_half);
+void two_half_to_vector(tiny_dnn::tensor_t& array, tiny_dnn::tensor16_t array_half);
 void two_half_to_vector(std::vector<std::vector<size_t>>& array, std::vector<std::vector<half>> array_half);
 
 
@@ -91,7 +93,7 @@ inline void maxpool_op_internal(const tensor16_t &in_data,
                                 std::vector<std::vector<size_t>> &max_idx,
                                 const std::vector<std::vector<size_t>> &out2in,
                                 const bool layer_parallelize) {
-
+#if MAX_POOLING_F_HALF == 1
   for_i(layer_parallelize, in_data.size(), [&](size_t sample) {
     const vec16_t &in          = in_data[sample];
     vec16_t &out               = out_data[sample];
@@ -111,7 +113,34 @@ inline void maxpool_op_internal(const tensor16_t &in_data,
       out[i] = max_value;
     }
   });
+#else
+  tensor_t in_data_float;
+  two_half_to_vector(in_data_float, in_data);
+  tensor_t out_data_float;
+  two_half_to_vector(out_data_float, out_data);
 
+  for_i(layer_parallelize, in_data_float.size(), [&](size_t sample) {
+    const vec_t &in          = in_data_float[sample];
+    vec_t &out               = out_data_float[sample];
+    std::vector<size_t> &max = max_idx[sample];
+
+    for (size_t i = 0; i < out2in.size(); i++) {
+      const auto &in_index = out2in[i];
+      float_t max_value    = std::numeric_limits<float_t>::lowest();
+      size_t idx           = 0;
+      for (auto j : in_index) {
+        if (in[j] > max_value) {
+          max_value = in[j];
+          idx       = j;
+        }
+      }
+      max[i] = idx;
+      out[i] = max_value;
+    }
+  });
+
+  out_data = two_vector_to_half16(out_data_float);
+#endif
 }
 
 inline void maxpool_grad_op_internal(tensor_t &prev_delta,
@@ -160,7 +189,7 @@ inline void maxpool_grad_op_internal(tensor16_t &prev_delta,
                                      std::vector<std::vector<size_t>> &max_idx,
                                      const std::vector<size_t> &in2out,
                                      const bool layer_parallelize) {
-  
+#if MAX_POOLING_B_HALF == 1
   for_i(layer_parallelize, prev_delta.size(), [&](size_t sample) {
     vec16_t &prev                    = prev_delta[sample];
     const vec16_t &curr              = curr_delta[sample];
@@ -171,7 +200,25 @@ inline void maxpool_grad_op_internal(tensor16_t &prev_delta,
       prev[i] = (max[outi] == i) ? curr[outi] : half{0};
     }
   });
+#else
+  tensor_t prev_delta_float;
+  two_half_to_vector(prev_delta_float, prev_delta);
+  tensor_t curr_delta_float;
+  two_half_to_vector(curr_delta_float, curr_delta);
 
+  for_i(layer_parallelize, prev_delta.size(), [&](size_t sample) {
+    vec_t &prev                    = prev_delta_float[sample];
+    const vec_t &curr              = curr_delta_float[sample];
+    const std::vector<size_t> &max = max_idx[sample];
+
+    for (size_t i = 0; i < in2out.size(); i++) {
+      size_t outi = in2out[i];
+      prev[i] = (max[outi] == i) ? curr[outi] : float_t{0};
+    }
+  });
+
+  prev_delta = two_vector_to_half16(prev_delta_float);
+#endif
 }
 
 }  // namespace kernels

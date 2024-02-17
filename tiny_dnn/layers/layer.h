@@ -222,8 +222,8 @@ class layer : public node {
     for (size_t i = 0; i < out_channels_; i++) {
       if (out_type_[i] != vector_type::data) continue;
       tensor_t &dst_grad = *ith_out_node(i)->get_gradient();
-      std::cout << "dst_grad.size() = " << dst_grad.size() << std::endl;
-      std::cout << "dst_grad[0].size() = " << dst_grad[0].size() << std::endl;
+      // std::cout << "dst_grad.size() = " << dst_grad.size() << std::endl;
+      // std::cout << "dst_grad[0].size() = " << dst_grad[0].size() << std::endl;
 
       assert(n < cnt);
       const auto &src_grad = grad[n++];
