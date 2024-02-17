@@ -70,9 +70,113 @@ class FullyConnectedGradOp : public core::OpKernel {
 
     const core::backend_t engine = context.engine();
 
+    #if CONV_B_HALF == 0
+    // 入力データをfloatに変換
+    tensor_t prev_out_float;
+    for (size_t i = 0; i < prev_out.size(); i++) {
+      prev_out_float.emplace_back(vec_t(prev_out[i].size()));
+      for (size_t j = 0; j < prev_out[i].size(); j++) {
+        prev_out_float[i][j] = float(prev_out[i][j]);
+      }
+    }
+
+    // 重みデータをfloatに変換
+    tensor_t W_float;
+    for (size_t i = 0; i < W.size(); i++) {
+      W_float.emplace_back(vec_t(W[i].size()));
+      for (size_t j = 0; j < W[i].size(); j++) {
+        W_float[i][j] = float(W[i][j]);
+      }
+    }
+    
+    // dWをfloatに変換
+    tensor_t dW_float;
+    for (size_t i = 0; i < dW.size(); i++) {
+      dW_float.emplace_back(vec_t(dW[i].size()));
+      for (size_t j = 0; j < dW[i].size(); j++) {
+        dW_float[i][j] = float(dW[i][j]);
+      }
+    }
+
+    // バイアスデータをfloatに変換
+    tensor_t db_float;
+    for (size_t i = 0; i < db->size(); i++) {
+      vec_t temp;
+      for (size_t j = 0; j < (*db)[i].size(); j++) {
+        temp.push_back(static_cast<float>((*db)[i][j]));
+      }
+      db_float.push_back(temp);
+    }
+
+    // 前のデルタデータをfloatに変換
+    tensor_t prev_delta_float;
+    for (size_t i = 0; i < prev_delta.size(); i++) {
+      prev_delta_float.emplace_back(vec_t(prev_delta[i].size()));
+      for (size_t j = 0; j < prev_delta[i].size(); j++) {
+        prev_delta_float[i][j] = float(prev_delta[i][j]);
+      }
+    }
+
+    // デルタデータをfloatに変換
+    tensor_t curr_delta_float;
+    for (size_t i = 0; i < curr_delta.size(); i++) {
+      curr_delta_float.emplace_back(vec_t(curr_delta[i].size()));
+      for (size_t j = 0; j < curr_delta[i].size(); j++) {
+        curr_delta_float[i][j] = float(curr_delta[i][j]);
+      }
+    }
+
+    // dummyデータをfloatに変換
+    tensor_t dummy_float;
+    for (size_t i = 0; i < dummy.size(); i++) {
+      dummy_float.emplace_back(vec_t(dummy[i].size()));
+      for (size_t j = 0; j < dummy[i].size(); j++) {
+        dummy_float[i][j] = float(dummy[i][j]);
+      }
+    }
+
+    // kernels::fully_connected_op_internal(
+    //   prev_out_float, W_float[0], dW_float, params.has_bias_ ? db_float[0] : vec_t(),
+    //   curr_delta_float, prev_delta_float, params, context.parallelize());
+    
+    kernels::fully_connected_op_internal(
+        prev_out_float, W_float[0], dW_float, params.has_bias_ ? db_float : dummy_float, curr_delta_float,
+        prev_delta_float, params, context.parallelize());
+
+    // 前のデルタデータをhalfに変換
+    for (size_t i = 0; i < prev_delta.size(); i++) {
+      for (size_t j = 0; j < prev_delta[i].size(); j++) {
+        prev_delta[i][j] = half(prev_delta_float[i][j]);
+      }
+    }
+
+    // dWをhalfに変換
+    for (size_t i = 0; i < dW.size(); i++) {
+      for (size_t j = 0; j < dW[i].size(); j++) {
+        dW[i][j] = half(dW_float[i][j]);
+      }
+    }
+
+    // dbをhalfに変換
+    // for (size_t i = 0; i < db->size(); i++) {
+    //   for (size_t j = 0; j < db[i].size(); j++) {
+    //     db[i][j] = half(db_float[i][j]);
+    //   }
+    // }
+
+    for (size_t i = 0; i < db_float.size(); i++) {
+      for (size_t j = 0; j < db_float[i].size(); j++) {
+        (*db)[i][j] = half_float::half(db_float[i][j]);
+      }
+    }
+    
+    #else
+
     kernels::fully_connected_op_internal(
       prev_out, W[0], dW, params.has_bias_ ? *db : dummy, curr_delta,
       prev_delta, params, context.parallelize());
+
+    #endif
   }
 };
 

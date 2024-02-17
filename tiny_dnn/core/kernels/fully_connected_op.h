@@ -79,9 +79,61 @@ class FullyConnectedOp : public core::OpKernel {
 
     const core::backend_t engine = context.engine();
 
+    #if FC_F_HALF == 0
+    // 入力データをfloatに変換
+    tensor_t in_data_float;
+    for (size_t i = 0; i < in_data.size(); i++) {
+      in_data_float.push_back(vec_t());
+      for (size_t j = 0; j < in_data[i].size(); j++) {
+        in_data_float[i].push_back(float(in_data[i][j]));
+      }
+    }
+
+    // 重みデータをfloatに変換
+    tensor_t W_float;
+    for (size_t i = 0; i < W.size(); i++) {
+      W_float.push_back(vec_t());
+      for (size_t j = 0; j < W[i].size(); j++) {
+        W_float[i].push_back(float(W[i][j]));
+      }
+    }
+
+    // バイアスデータをfloatに変換
+    tensor_t bias_float;
+    for (size_t i = 0; i < bias->size(); i++) {
+      vec_t temp;
+      for (size_t j = 0; j < (*bias)[i].size(); j++) {
+        temp.push_back(static_cast<float>((*bias)[i][j]));
+      }
+      bias_float.push_back(temp);
+    }
+
+    // 出力データをfloatに変換
+    tensor_t out_data_float;
+    for (size_t i = 0; i < out_data.size(); i++) {
+      out_data_float.push_back(vec_t());
+      for (size_t j = 0; j < out_data[i].size(); j++) {
+        out_data_float[i].push_back(float(out_data[i][j]));
+      }
+    }
+
+    kernels::fully_connected_op_internal(
+      in_data_float, W_float[0], params.has_bias_ ? bias_float[0] : vec_t(),
+      out_data_float, params, context.parallelize());
+
+    // 出力データをhalfに変換
+    for (size_t i = 0; i < out_data.size(); i++) {
+      for (size_t j = 0; j < out_data[i].size(); j++) {
+        out_data[i][j] = half(out_data_float[i][j]);
+      }
+    }
+    #else
+
     kernels::fully_connected_op_internal(
       in_data, W[0], params.has_bias_ ? (*bias)[0] : vec16_t(), out_data,
       params, context.parallelize());
+    
+    #endif
   }
 };
 
