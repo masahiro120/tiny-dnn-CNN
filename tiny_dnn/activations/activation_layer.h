@@ -80,8 +80,8 @@ class activation_layer : public layer {
 
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
                                std::vector<tensor16_t *> &out_data) override {
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-    std::cout << "ActivationLayer::forward_propagation16" << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << "ActivationLayer::forward_propagation16" << std::endl;
 
     std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
     std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
@@ -140,7 +140,7 @@ class activation_layer : public layer {
       }
     }
 
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     const tensor16_t &x = *in_data[0];
     tensor16_t &y       = *out_data[0];
     for_i(x.size(), [&](size_t i) { forward_activation16(x[i], y[i]); });
@@ -162,8 +162,8 @@ class activation_layer : public layer {
                           const std::vector<tensor16_t *> &out_data,
                           std::vector<tensor16_t *> &out_grad,
                           std::vector<tensor16_t *> &in_grad) override {
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-    std::cout << "ActivationLayer::back_propagation16" << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << "ActivationLayer::back_propagation16" << std::endl;
 
     std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
     std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
@@ -222,13 +222,16 @@ class activation_layer : public layer {
       }
     }
 
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     tensor16_t &dx       = *in_grad[0];
     const tensor16_t &dy = *out_grad[0];
     const tensor16_t &x  = *in_data[0];
     const tensor16_t &y  = *out_data[0];
-    for_i(x.size(),
-          [&](size_t i) { backward_activation16(x[i], y[i], dx[i], dy[i]); });
+    // for_i(x.size(),
+    //       [&](size_t i) { backward_activation16(x[i], y[i], dx[i], dy[i]); });
+    for (size_t i = 0; i < x.size(); i++) {
+      backward_activation16(x[i], y[i], dx[i], dy[i]);
+    }
   }
 
   std::string layer_type() const override = 0;

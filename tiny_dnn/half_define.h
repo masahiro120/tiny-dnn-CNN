@@ -21,7 +21,7 @@
 
 // 要確認
 #define BATCH_NORM_F_HALF 1
-#define BATCH_NORM_B_HALF 1
+#define BATCH_NORM_B_HALF 0
 
 // 要確認
 #define LOSS_HALF 1

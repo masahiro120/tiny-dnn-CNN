@@ -304,8 +304,8 @@ class convolutional_layer : public layer {
 
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
                                std::vector<tensor16_t *> &out_data) override {
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-    std::cout << "Convolutional_layer::forward_propagation16" << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << "Convolutional_layer::forward_propagation16" << std::endl;
 
     std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
     std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
@@ -364,7 +364,7 @@ class convolutional_layer : public layer {
       }
     }
 
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 
 
 

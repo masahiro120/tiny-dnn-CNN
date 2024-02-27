@@ -434,6 +434,48 @@ class batch_normalization_layer : public layer {
         out_grad_val[i] = *(out_grad[i]); // ポインタのデリファレンス
     }
 
+    // std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+    // 入力データのnanチェック
+    for (size_t i = 0; i < in_data_val[0].size(); i++) {
+      for (size_t j = 0; j < in_data_val[0][i].size(); j++) {
+        if (std::isnan((float)in_data_val[0][i][j])) {
+          std::cout << "in_data_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
+
+    // 出力データのnanチェック
+    for (size_t i = 0; i < out_data_val[0].size(); i++) {
+      for (size_t j = 0; j < out_data_val[0][i].size(); j++) {
+        if (std::isnan((float)out_data_val[0][i][j])) {
+          std::cout << "out_data_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
+
+    // 入力データのnanチェック
+    for (size_t i = 0; i < in_grad_val[0].size(); i++) {
+      for (size_t j = 0; j < in_grad_val[0][i].size(); j++) {
+        if (std::isnan((float)in_grad_val[0][i][j])) {
+          std::cout << "in_grad_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
+
+    // 出力データのnanチェック
+    for (size_t i = 0; i < out_grad_val[0].size(); i++) {
+      for (size_t j = 0; j < out_grad_val[0][i].size(); j++) {
+        if (std::isnan((float)out_grad_val[0][i][j])) {
+          std::cout << "out_grad_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
+
     std::vector<tensor_t> in_data_float;
     three_half_to_vector(in_data_float, in_data_val);
     std::vector<tensor_t> out_data_float;
@@ -472,6 +514,48 @@ class batch_normalization_layer : public layer {
         }
       }
     });
+
+    // std::cout << __FILE__ << " " << __LINE__ << std::endl;
+
+    // 入力データのnanチェック
+    for (size_t i = 0; i < in_data_val[0].size(); i++) {
+      for (size_t j = 0; j < in_data_val[0][i].size(); j++) {
+        if (std::isnan((float)in_data_val[0][i][j])) {
+          std::cout << "in_data_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
+
+    // 出力データのnanチェック
+    for (size_t i = 0; i < out_data_val[0].size(); i++) {
+      for (size_t j = 0; j < out_data_val[0][i].size(); j++) {
+        if (std::isnan((float)out_data_val[0][i][j])) {
+          std::cout << "out_data_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
+
+    // 入力データのnanチェック
+    for (size_t i = 0; i < in_grad_val[0].size(); i++) {
+      for (size_t j = 0; j < in_grad_val[0][i].size(); j++) {
+        if (std::isnan((float)in_grad_val[0][i][j])) {
+          std::cout << "in_grad_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
+
+    // 出力データのnanチェック
+    for (size_t i = 0; i < out_grad_val[0].size(); i++) {
+      for (size_t j = 0; j < out_grad_val[0][i].size(); j++) {
+        if (std::isnan((float)out_grad_val[0][i][j])) {
+          std::cout << "out_grad_val[0][" << i << "][" << j << "] is nan" << std::endl;
+          std::exit(0);
+        }
+      }
+    }
 
     in_grad_val = three_vector_to_half16(in_grad_float);
 
@@ -949,7 +1033,7 @@ class batch_normalization_layer : public layer {
       }
     }
 
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     
     // std::vector<half> mean_half;
     // std::vector<half> variance_half;
@@ -1053,7 +1137,7 @@ class batch_normalization_layer : public layer {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
 
-    // // out_dataにnanが含まれているかどうかを確認します。
+    // out_dataにnanが含まれているかどうかを確認します。
     // for (size_t i = 0; i < out_data_val[0].size(); i++) {
     //   for (size_t j = 0; j < out_data_val[0][0].size(); j++) {
     //     if (std::isnan(out_data_val[0][i][j])) {

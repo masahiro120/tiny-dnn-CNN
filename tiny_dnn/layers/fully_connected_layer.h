@@ -81,8 +81,8 @@ class fully_connected_layer : public layer {
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
                                std::vector<tensor16_t *> &out_data) override {
 
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-    std::cout << "FullyConnectedLayer::forward_propagation16" << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << "FullyConnectedLayer::forward_propagation16" << std::endl;
 
     std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
     std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
@@ -141,7 +141,7 @@ class fully_connected_layer : public layer {
       }
     }
 
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     // forward fully connected op context
     fwd_ctx_.set_in_out(in_data, out_data);
     fwd_ctx_.setParallelize(layer::parallelize());

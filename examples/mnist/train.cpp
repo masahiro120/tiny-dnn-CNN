@@ -21,7 +21,7 @@ using namespace std;
 #include "gray_train_images.cpp"
 #include "gray_train_labels.cpp"
 
-int train16 = 0;
+int train16 = 1;
 
 // #include "train_images_one.cpp"
 
@@ -276,7 +276,7 @@ if (train16 == 1) {
   tiny_dnn::timer t_16;
 
   optimizer.alpha_16 *=
-    static_cast<half>(sqrt(n_minibatch) * learning_rate);
+    half(sqrt(n_minibatch) * learning_rate);
 
   int epoch_16 = 1;
   // create callback

@@ -5,7 +5,8 @@ std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<half> array_half(array.size());
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
         
         // array[i]が表せる下限の場合0を代入
         if (array[i] > 0 && array[i] < min_half_value) {
@@ -19,7 +20,8 @@ std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array) {
         } else {
             array_half[i] = half(array[i]);
         }
-    });
+    }
+    // });
 
     return array_half;
 }
@@ -29,21 +31,23 @@ tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     tiny_dnn::vec16_t array_half(array.size());
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
         
         // array[i]が表せる下限の場合0を代入
         if (array[i] > 0 && array[i] < min_half_value) {
-            array_half[i] = min_half_value;
+            array_half[i] = half(min_half_value);
         } else if (array[i] < 0 && array[i] > -min_half_value) {
-            array_half[i] = -min_half_value;
+            array_half[i] = half(-min_half_value);
         } else if (array[i] > max_half_value) {
-            array_half[i] = max_half_value;
+            array_half[i] = half(max_half_value);
         } else if (array[i] < -max_half_value) {
-            array_half[i] = -max_half_value;
+            array_half[i] = half(-max_half_value);
         } else {
             array_half[i] = half(array[i]);
         }
-    });
+    }
+    // });
 
     return array_half;
 }
@@ -52,8 +56,8 @@ std::vector<half> one_vector_to_half(const std::vector<size_t>& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<half> array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         if (array[i] > 0 && array[i] < min_half_value) {
             array_half[i] = min_half_value;
         } else if (array[i] < 0 && array[i] > -min_half_value) {
@@ -65,8 +69,8 @@ std::vector<half> one_vector_to_half(const std::vector<size_t>& array) {
         } else {
             array_half[i] = half(array[i]);
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -75,8 +79,8 @@ tiny_dnn::vec16_t one_vector_to_half16(const std::vector<size_t>& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     tiny_dnn::vec16_t array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         if (array[i] > 0 && array[i] < min_half_value) {
             array_half[i] = min_half_value;
         } else if (array[i] < 0 && array[i] > -min_half_value) {
@@ -88,8 +92,8 @@ tiny_dnn::vec16_t one_vector_to_half16(const std::vector<size_t>& array) {
         } else {
             array_half[i] = half(array[i]);
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -98,8 +102,8 @@ std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& arra
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<std::vector<half>> array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());
 
         for (size_t j = 0; j < array[i].size(); ++j) {
@@ -116,8 +120,8 @@ std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& arra
             }
             // array_half[i][j] = half(array[i][j]);
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -126,8 +130,8 @@ tiny_dnn::tensor16_t two_vector_to_half16(const tiny_dnn::tensor_t& array) {
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     tiny_dnn::tensor16_t array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());
 
         for (size_t j = 0; j < array[i].size(); ++j) {
@@ -144,8 +148,8 @@ tiny_dnn::tensor16_t two_vector_to_half16(const tiny_dnn::tensor_t& array) {
             }
             // array_half[i][j] = half(array[i][j]);
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -154,8 +158,8 @@ std::vector<std::vector<half>> two_vector_to_half(const std::vector<std::vector<
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<std::vector<half>> array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());
 
         for (size_t j = 0; j < array[i].size(); ++j) {
@@ -172,8 +176,8 @@ std::vector<std::vector<half>> two_vector_to_half(const std::vector<std::vector<
             }
             // array_half[i][j] = half(array[i][j]);
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -182,8 +186,8 @@ tiny_dnn::tensor16_t two_vector_to_half16(const std::vector<std::vector<size_t>>
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     tiny_dnn::tensor16_t array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());
 
         for (size_t j = 0; j < array[i].size(); ++j) {
@@ -200,8 +204,8 @@ tiny_dnn::tensor16_t two_vector_to_half16(const std::vector<std::vector<size_t>>
             }
             // array_half[i][j] = half(array[i][j]);
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -210,8 +214,8 @@ std::vector<std::vector<std::vector<half>>> three_vector_to_half(const std::vect
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<std::vector<std::vector<half>>> array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());
 
         for (size_t j = 0; j < array[i].size(); ++j) {
@@ -232,8 +236,8 @@ std::vector<std::vector<std::vector<half>>> three_vector_to_half(const std::vect
                 // array_half[i][j][k] = half(array[i][j][k]);
             }
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -242,8 +246,8 @@ std::vector<tiny_dnn::tensor16_t> three_vector_to_half16(const std::vector<tiny_
     float min_half_value = std::numeric_limits<half>::min();
     float max_half_value = std::numeric_limits<half>::max();
     std::vector<tiny_dnn::tensor16_t> array_half(array.size());
-    // for (size_t i = 0; i < array.size(); ++i) {
-    tiny_dnn::for_i(array.size(), [&](size_t i) {
+    for (size_t i = 0; i < array.size(); ++i) {
+    // tiny_dnn::for_i(array.size(), [&](size_t i) {
         array_half[i].resize(array[i].size());
 
         for (size_t j = 0; j < array[i].size(); ++j) {
@@ -264,8 +268,8 @@ std::vector<tiny_dnn::tensor16_t> three_vector_to_half16(const std::vector<tiny_
                 // array_half[i][j][k] = half(array[i][j][k]);
             }
         }
-    });
-    // }
+    // });
+    }
 
     return array_half;
 }
@@ -273,62 +277,85 @@ std::vector<tiny_dnn::tensor16_t> three_vector_to_half16(const std::vector<tiny_
 
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half) {
   array.resize(array_half.size());
-  // for (size_t i = 0; i < array.size(); ++i) {
-  tiny_dnn::for_i(array.size(), [&](size_t i) {
+  for (size_t i = 0; i < array.size(); ++i) {
+  // tiny_dnn::for_i(array.size(), [&](size_t i) {
     array[i] = static_cast<float>(array_half[i]);
-  });
-  // }
+  // });
+  }
 }
 
 void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half) {
+  float min_half_value = std::numeric_limits<half>::min();
+  float max_half_value = std::numeric_limits<half>::max();
   array.resize(array_half.size());
-  // for (size_t i = 0; i < array.size(); ++i) {
-  tiny_dnn::for_i(array.size(), [&](size_t i) {
-    array[i] = static_cast<float>(array_half[i]);
-  });
-  // }
+  for (size_t i = 0; i < array.size(); ++i) {
+  // tiny_dnn::for_i(array.size(), [&](size_t i) {
+    if (array_half[i] > 0 && array_half[i] < min_half_value) {
+      array[i] = min_half_value;
+    } else if (array_half[i] < 0 && array_half[i] > -min_half_value) {
+      array[i] = -min_half_value;
+    } else if (array_half[i] > max_half_value) {
+      array[i] = max_half_value;
+    } else if (array_half[i] < -max_half_value) {
+      array[i] = -max_half_value;
+    } else {
+      array[i] = static_cast<float>(array_half[i]);
+    }
+    // array[i] = static_cast<float>(array_half[i]);
+  // });
+  }
+  // -inf, infの処理
+  for (size_t i = 0; i < array.size(); ++i) {
+    if (std::isinf(array[i])) {
+      if (array[i] > 0) {
+        array[i] = max_half_value;
+      } else {
+        array[i] = -max_half_value;
+      }
+    }
+  }
 }
 
 void two_half_to_vector(tiny_dnn::tensor_t& array, std::vector<std::vector<half>> array_half) {
   array.resize(array_half.size());
-  // for (size_t i = 0; i < array.size(); ++i) {
-  tiny_dnn::for_i(array.size(), [&](size_t i) {
+  for (size_t i = 0; i < array.size(); ++i) {
+  // tiny_dnn::for_i(array.size(), [&](size_t i) {
     array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
       array[i][j] = static_cast<float>(array_half[i][j]);
     }
-  });
-  // }
+  // });
+  }
 }
 
 void two_half_to_vector(tiny_dnn::tensor_t& array, tiny_dnn::tensor16_t array_half) {
   array.resize(array_half.size());
-  // for (size_t i = 0; i < array.size(); ++i) {
-  tiny_dnn::for_i(array.size(), [&](size_t i) {
+  for (size_t i = 0; i < array.size(); ++i) {
+  // tiny_dnn::for_i(array.size(), [&](size_t i) {
     array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
       array[i][j] = static_cast<float>(array_half[i][j]);
     }
-  });
-  // }
+  // });
+  }
 }
 
 void two_half_to_vector(std::vector<std::vector<size_t>>& array, std::vector<std::vector<half>> array_half) {
   array.resize(array_half.size());
-  // for (size_t i = 0; i < array.size(); ++i) {
-  tiny_dnn::for_i(array.size(), [&](size_t i) {
+  for (size_t i = 0; i < array.size(); ++i) {
+  // tiny_dnn::for_i(array.size(), [&](size_t i) {
     array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
       array[i][j] = static_cast<float>(array_half[i][j]);
     }
-  });
-  // }
+  // });
+  }
 }
 
 void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<std::vector<std::vector<half>>> array_half) {
   array.resize(array_half.size());
-  // for (size_t i = 0; i < array.size(); ++i) {
-  tiny_dnn::for_i(array.size(), [&](size_t i) {
+  for (size_t i = 0; i < array.size(); ++i) {
+  // tiny_dnn::for_i(array.size(), [&](size_t i) {
     array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
       array[i][j].resize(array_half[i][j].size());
@@ -336,14 +363,14 @@ void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<st
         array[i][j][k] = static_cast<float>(array_half[i][j][k]);
       }
     }
-  });
-  // }
+  // });
+  }
 }
 
 void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<tiny_dnn::tensor16_t> array_half) {
   array.resize(array_half.size());
-  // for (size_t i = 0; i < array.size(); ++i) {
-  tiny_dnn::for_i(array.size(), [&](size_t i) {
+  for (size_t i = 0; i < array.size(); ++i) {
+  // tiny_dnn::for_i(array.size(), [&](size_t i) {
     array[i].resize(array_half[i].size());
     for (size_t j = 0; j < array[i].size(); ++j) {
       array[i][j].resize(array_half[i][j].size());
@@ -351,16 +378,11 @@ void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<ti
         array[i][j][k] = static_cast<float>(array_half[i][j][k]);
       }
     }
-  });
-  // }
+  // });
+  }
 }
 
 void vector_div_half(std::vector<half> &x, half denom) {
-  std::transform(x.begin(), x.end(), x.begin(),
-                 [=](half x) { return x / denom; });
-}
-
-void vector_div_half(tiny_dnn::vec16_t &x, half denom) {
   std::transform(x.begin(), x.end(), x.begin(),
                  [=](half x) { return x / denom; });
 }
@@ -411,20 +433,6 @@ void moments_impl_calc_mean_half(size_t num_examples,
   }
 }
 
-void moments_impl_calc_mean_half(size_t num_examples,
-                            size_t channels,
-                            size_t spatial_dim,
-                            const tiny_dnn::tensor16_t &in,
-                            tiny_dnn::vec16_t &mean) {
-  for (size_t i = 0; i < num_examples; i++) {
-    for (size_t j = 0; j < channels; j++) {
-      half &rmean = mean.at(j);
-      const auto it  = in[i].begin() + (j * spatial_dim);
-      rmean          = std::accumulate(it, it + spatial_dim, rmean);
-    }
-  }
-}
-
 void moments_impl_calc_variance(size_t num_examples,
                                 size_t channels,
                                 size_t spatial_dim,
@@ -433,56 +441,6 @@ void moments_impl_calc_variance(size_t num_examples,
                                 std::vector<half> &variance) {
   
   std::vector<half> variance_copy = variance;
-  assert(mean.size() >= channels);
-  for (size_t i = 0; i < num_examples; i++) {
-    for (size_t j = 0; j < channels; j++) {
-      half &rvar    = variance[j];
-      const auto it    = in[i].begin() + (j * spatial_dim);
-      const half ex = mean[j];
-      // rvar             = std::accumulate(it, it + spatial_dim, rvar,
-      //                        [ex](half current, half x) {
-      //                          return current + pow(x - ex, half{2.0});
-      //                        });
-      rvar             = std::accumulate(it, it + spatial_dim, rvar,
-                             [ex](half current, half x) {
-                               return current + (x - ex, half{2.0}) * (x - ex, half{2.0});
-                             });
-    }
-  }
-  // vector_div_half(
-  //   variance,
-  //   std::max(half{1.0f}, half(num_examples * spatial_dim) - half{1.0f}));
-
-  // printf("num_examples * spatial_dim: %d\n", num_examples * spatial_dim);
-  int flag = 0;
-  for (size_t i = 0; i < variance.size(); ++i) {
-    if (std::isnan(variance[i])) {
-      printf("variance[%d]: %f, variance_copy[%d]: %f\n", i, static_cast<float>(variance[i]), i, static_cast<float>(variance_copy[i]));
-      flag = 1;
-    }
-  }
-
-  if (flag == 1) {
-    // システムを停止
-    exit(1);
-  }
-
-
-  if (half(num_examples * spatial_dim) - half{1.0f} < half{1.0f}) {
-    vector_div_half(variance, half{1.0f});
-  } else {
-    vector_div_half(variance, half(num_examples * spatial_dim) - half{1.0f});
-  }
-}
-
-void moments_impl_calc_variance(size_t num_examples,
-                                size_t channels,
-                                size_t spatial_dim,
-                                const tiny_dnn::tensor16_t &in,
-                                const tiny_dnn::vec16_t &mean,
-                                tiny_dnn::vec16_t &variance) {
-  
-  tiny_dnn::vec16_t variance_copy = variance;
   assert(mean.size() >= channels);
   for (size_t i = 0; i < num_examples; i++) {
     for (size_t j = 0; j < channels; j++) {
@@ -592,22 +550,6 @@ void moments_half(const std::vector<std::vector<half>> &in,
   vector_div(mean, num_examples * spatial_dim);
 }
 
-void moments_half(const tiny_dnn::tensor16_t &in,
-                    size_t spatial_dim,
-                    size_t channels,
-                    tiny_dnn::vec16_t &mean) {
-  const size_t num_examples = in.size();
-  assert(in[0].size() == spatial_dim * channels);
-
-  mean.resize(channels);
-  // vectorize::fill(&mean[0], mean.size(), float_t{0.0});
-  for (size_t i = 0; i < mean.size(); ++i) {
-    mean[i] = half(0.0);
-  }
-  moments_impl_calc_mean_half(num_examples, channels, spatial_dim, in, mean);
-  vector_div_half(mean, half(num_examples * spatial_dim));
-}
-
 void moments_half(const std::vector<std::vector<half>> &in,
                     size_t spatial_dim,
                     size_t channels,
@@ -633,26 +575,6 @@ void moments_half(const std::vector<std::vector<half>> &in,
                     size_t channels,
                     tiny_dnn::vec_t &mean,
                     tiny_dnn::vec_t &variance) {
-  const size_t num_examples = in.size();
-  assert(in[0].size() == spatial_dim * channels);
-
-  // calc mean
-  moments_half(in, spatial_dim, channels, mean);
-
-  variance.resize(channels);
-  // vectorize::fill(&variance[0], variance.size(), float_t{0.0});
-  for (size_t i = 0; i < variance.size(); ++i) {
-    variance[i] = half(0.0);
-  }
-  moments_impl_calc_variance(num_examples, channels, spatial_dim, in,
-                                     mean, variance);
-}
-
-void moments_half(const tiny_dnn::tensor16_t &in,
-                    size_t spatial_dim,
-                    size_t channels,
-                    tiny_dnn::vec16_t &mean,
-                    tiny_dnn::vec16_t &variance) {
   const size_t num_examples = in.size();
   assert(in[0].size() == spatial_dim * channels);
 
@@ -791,4 +713,37 @@ std::vector<std::vector<std::vector<half>>> gradient_half(
 
 
   return gradients;
+}
+
+void nan_check(const tiny_dnn::vec16_t &array) {
+  for (size_t i = 0; i < array.size(); ++i) {
+    if (std::isnan(array[i]) || std::isinf(array[i])) {
+      printf("array[%d]: %f\n", i, static_cast<float>(array[i]));
+      // std::exit(0);
+    }
+  }
+}
+
+void nan_check(const tiny_dnn::tensor16_t &array) {
+  for (size_t i = 0; i < array.size(); ++i) {
+    for (size_t j = 0; j < array[i].size(); ++j) {
+      if (std::isnan(array[i][j]) || std::isinf(array[i][j])) {
+        printf("array[%d][%d]: %f\n", i, j, static_cast<float>(array[i][j]));
+        std::exit(0);
+      }
+    }
+  }
+}
+
+void nan_check(const std::vector<tiny_dnn::tensor16_t> &array) {
+  for (size_t i = 0; i < array.size(); ++i) {
+    for (size_t j = 0; j < array[i].size(); ++j) {
+      for (size_t k = 0; k < array[i][j].size(); ++k) {
+        if (std::isnan(array[i][j][k]) || std::isinf(array[i][j][k])) {
+          printf("array[%d][%d][%d]: %f\n", i, j, k, static_cast<float>(array[i][j][k]));
+          std::exit(0);
+        }
+      }
+    }
+  }
 }

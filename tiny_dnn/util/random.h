@@ -77,8 +77,9 @@ void uniform_rand(Iter begin, Iter end, float_t min, float_t max) {
 }
 
 inline half_float::half uniform_rand(half_float::half min, half_float::half max) {
-  std::mt19937 mt(123); // ここで特定のシード値を使用
-  std::uniform_real_distribution<float> dist(static_cast<float>(min), static_cast<float>(max));
+  static std::random_device rd;
+  static std::mt19937 mt(rd());
+  static std::uniform_real_distribution<float> dist(min, max);
   return half(dist(mt));
 }
 

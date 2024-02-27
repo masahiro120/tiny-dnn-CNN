@@ -26,6 +26,8 @@ tiny_dnn::tensor16_t two_vector_to_half16(const tiny_dnn::tensor_t& array);
 void two_half_to_vector(tiny_dnn::tensor_t& array, std::vector<std::vector<half>> array_half);
 void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half);
 void two_half_to_vector(tiny_dnn::tensor_t& array, tiny_dnn::tensor16_t array_half);
+void nan_check(const tiny_dnn::vec16_t &array);
+void nan_check(const tiny_dnn::tensor16_t &array);
 
 namespace tiny_dnn {
 namespace kernels {
@@ -890,6 +892,23 @@ void conv2d_op_internal16(const tensor16_t &prev_out,
                         const bool parallelize) {
 #if CONV_B_HALF == 1
   // printf("conv backward\n");
+
+  // // nan check
+  // std::cout << "prev_out nan check" << std::endl;
+  // nan_check(prev_out);
+  // std::cout << "W nan check" << std::endl;
+  // nan_check(W);
+  // std::cout << "dW nan check" << std::endl;
+  // nan_check(dW);
+  // std::cout << "db nan check" << std::endl;
+  // nan_check(db);
+  // std::cout << "curr_delta nan check" << std::endl;
+  // nan_check(curr_delta);
+  // std::cout << "prev_delta nan check" << std::endl;
+  // nan_check(prev_delta);
+
+  // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
   typedef typename vec_t::value_type float_t;
 
   for_i(parallelize, prev_out.size(), [&](size_t sample) {
@@ -992,6 +1011,22 @@ void conv2d_op_internal16(const tensor16_t &prev_out,
       }
     }
   });
+
+  // // nan check
+  // std::cout << "prev_out nan check" << std::endl;
+  // nan_check(prev_out);
+  // std::cout << "W nan check" << std::endl;
+  // nan_check(W);
+  // std::cout << "dW nan check" << std::endl;
+  // nan_check(dW);
+  // std::cout << "db nan check" << std::endl;
+  // nan_check(db);
+  // std::cout << "curr_delta nan check" << std::endl;
+  // nan_check(curr_delta);
+  // std::cout << "prev_delta nan check" << std::endl;
+  // nan_check(prev_delta);
+
+  // printf("conv backward end\n");
 
 #else
 

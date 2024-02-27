@@ -16,6 +16,7 @@ class function {
  public:
   virtual void fill(vec_t *weight, size_t fan_in, size_t fan_out) = 0;
   virtual void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) = 0;
+  virtual float_t scale() const = 0;
 };
 
 class scalable : public function {
@@ -23,6 +24,8 @@ class scalable : public function {
   explicit scalable(float_t value) : scale_(value) {}
 
   void scale(float_t value) { scale_ = value; }
+
+  float_t scale() const override { return scale_; }  // 実装
 
  protected:
   float_t scale_;
@@ -48,7 +51,7 @@ class xavier : public scalable {
 
     uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
 
-    std::cout << "weight[0]: " << (*weight)[0] << ", " << (void*)(weight) <<  std::endl;
+    std::cout << "1 weight[0]: " << (*weight)[0] << ", " << (void*)(weight) <<  std::endl;
   }
 
   void fill16(vec16_t *weight, size_t fan_in, size_t fan_out) override {
@@ -59,7 +62,7 @@ class xavier : public scalable {
 
     uniform_rand(weight->begin(), weight->end(), -weight_base, weight_base);
 
-    std::cout << "weight[0]: " << (*weight)[0] << ", " << (void*)(weight) <<  std::endl;
+    std::cout << "2 weight[0]: " << (*weight)[0] << ", " << (void*)(weight) <<  std::endl;
   }
 };
 

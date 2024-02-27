@@ -289,7 +289,7 @@ class layer : public node {
       assert(n < cnt);
       const auto &src_data = data[n++];
       size_t sz            = src_data.size();
-      std::cout << "sz = " << sz << std::endl;
+      // std::cout << "sz = " << sz << std::endl;
       dst_data.resize(sz);
 
       CNN_UNREFERENCED_PARAMETER(in_size);
@@ -674,9 +674,9 @@ class layer : public node {
     // Internally ith_in_node() will create a connection/edge in the
     // computational graph and will allocate memory in case that it's not
     // done yet.
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 
-    std::cout << "in_channels_ = " << in_channels_ << std::endl;
+    // std::cout << "in_channels_ = " << in_channels_ << std::endl;
     for (size_t i = 0; i < in_channels_; i++) {
       fwd_in_data_16_[i] = ith_in_node(i)->get_data16();
     }
@@ -684,13 +684,13 @@ class layer : public node {
     // resize outs and stuff to have room for every input sample in
     // the batch
     set_sample_count16(fwd_in_data_16_[0]->size());
-    if (fwd_in_data_16_.size() != 1) {
-      std::cout << "fwd_in_data_16_[1][0][0].size() = " << fwd_in_data_16_[1][0][0].size() << std::endl;
-      for (size_t i = 0; i < 10; i++) {
-        std::cout << "fwd_in_data_16_[1][0][0][" << i << "] = " << fwd_in_data_16_[1][0][0][i] << std::endl;
-      }
-    }
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // if (fwd_in_data_16_.size() != 1) {
+    //   std::cout << "fwd_in_data_16_[1][0][0].size() = " << fwd_in_data_16_[1][0][0].size() << std::endl;
+    //   for (size_t i = 0; i < 10; i++) {
+    //     std::cout << "fwd_in_data_16_[1][0][0][" << i << "] = " << fwd_in_data_16_[1][0][0][i] << std::endl;
+    //   }
+    // }
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 
     // Internally ith_out_node() will create a connection/edge to the
     // computational graph and will allocate memory in case that it's not
@@ -840,10 +840,10 @@ class layer : public node {
 
     // reset the weights if necessary, or in case that the data is
     // still not initialized.
-    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
-    std::cout << "reset_weight = " << reset_weight << std::endl;
-    std::cout << "initialized = " << initialized_ << std::endl;
-    std::cout << "reset_weight || !initialized_ = " << (reset_weight || !initialized_) << std::endl;
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << "reset_weight = " << reset_weight << std::endl;
+    // std::cout << "initialized = " << initialized_ << std::endl;
+    // std::cout << "reset_weight || !initialized_ = " << (reset_weight || !initialized_) << std::endl;
     if (reset_weight || !initialized_) {
       init_weight16();
     }
@@ -906,7 +906,7 @@ class layer : public node {
   void init_weight16() {
     // layer/node is not trainable, do nothing and mark the layer/node
     // as initialized.
-    std::cout << "trainable_ = " << trainable_ << std::endl;
+    // std::cout << "trainable_ = " << trainable_ << std::endl;
     if (!trainable_) {
       initialized_ = true;
       return;
@@ -918,7 +918,7 @@ class layer : public node {
     // return the number of incoming/outcoming connections for each
     // input/output unit.
     for (size_t i = 0; i < in_channels_; i++) {
-      std::cout << "in_type_[i] = " << in_type_[i] << std::endl;
+      // std::cout << "in_type_[i] = " << in_type_[i] << std::endl;
       switch (in_type_[i]) {
         // fill vectors of weight type
         case vector_type::weight: {
@@ -927,7 +927,8 @@ class layer : public node {
           printf("get_weight_data16(%d).size() = %d\n", i, get_weight_data16(i)->size());
           // printf("get_weight_data(%d)[0] = %f\n", i, (*get_weight_data(i))[0]);
           vec16_t* weight_data16 = get_weight_data16(i);
-          printf("get_weight_data16(%zu)[0] = %f\n", i, (*weight_data16)[0]);
+          // printf("get_weight_data16(%zu)[0] = %f\n", i, static_cast<float>((*weight_data16)[0]));
+          std::cout << "get_weight_data16(" << i << ")[0] = " << (*weight_data16)[0] << std::endl;
           break;
         }
         // fill vector of bias type
@@ -935,7 +936,8 @@ class layer : public node {
           bias_init_->fill16(get_weight_data16(i), fan_in_size(i), fan_out_size(i));
           // printf("get_weight_data(%d)[0] = %f\n", i, get_weight_data(i)[0]);
           vec16_t* weight_data16 = get_weight_data16(i);
-          printf("get_weight_data16(%zu)[0] = %f\n", i, (*weight_data16)[0]);
+          // printf("get_weight_data16(%zu)[0] = %f\n", i, static_cast<float>((*weight_data16)[0]));
+          std::cout << "get_weight_data16(" << i << ")[0] = " << (*weight_data16)[0] << std::endl;
           break;
         }
         default: break;
@@ -988,12 +990,34 @@ class layer : public node {
         ith_in_node(i)->merge_grads(&diff);
         half rcp_batch_size =
           half(1.0) / half(ith_in_node(i)->get_data16()->size());
+        // std::cout << "rcp_batch_size = " << rcp_batch_size << std::endl;
+        // // diffにnanが含まれているか確認
+        // for (size_t j = 0; j < 10 || j < diff.size(); j++) {
+        //   std::cout << "diff[" << j << "] = " << diff[j] << std::endl;
+        //   if (std::isnan(diff[j])) {
+        //     std::exit(0);
+        //   }
+        // }
         for (size_t j = 0; j < diff.size(); ++j) {
           diff[j] *= rcp_batch_size;
         }
         // parallelize only when target size is big enough to mitigate
         // thread spawning overhead.
         bool parallelize = (target.size() >= 512);
+        // targetにnanが含まれているか確認
+        // for (size_t j = 0; j < 10 || j < diff.size(); j++) {
+        //   std::cout << "target[" << j << "] = " << target[j] << std::endl;
+        //   if (std::isnan(target[j])) {
+        //     std::exit(0);
+        //   }
+        // }
+        // // diffにnanが含まれているか確認
+        // for (size_t j = 0; j < 10; j++) {
+        //   std::cout << "diff[" << j << "] = " << diff[j] << std::endl;
+        //   if (std::isnan(diff[j])) {
+        //     std::exit(0);
+        //   }
+        // }
         o->update16(diff, target, parallelize);
       }
     }

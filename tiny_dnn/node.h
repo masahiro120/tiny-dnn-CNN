@@ -183,6 +183,16 @@ class edge {
     size_t sz             = grad_head.size();
     dst->resize(sz);
     half *pdst = &(*dst)[0];
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // // dstがnanか確認
+    // for (size_t i = 0; i < sz; i++) {
+    //   std::cout << "dst[" << i << "] = " << pdst[i] << std::endl;
+    //   if (std::isnan(pdst[i])) {
+    //     std::exit(0);
+    //   }
+    // }
+    
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     // dst = grad_16_[0]
     std::copy(grad_head.begin(), grad_head.end(), pdst);
     // @todo consider adding parallelism
@@ -190,10 +200,24 @@ class edge {
          ++sample) {
       // dst += grad_16_[sample]
       // vectorize::reduce<half>(&grad_16_[sample][0], sz, pdst);
+      // for (size_t i = 0; i < sz; i++) {
+      //   pdst[i] += grad_16_[sample][i];
+      // }
       for (size_t i = 0; i < sz; i++) {
-        pdst[i] += grad_16_[sample][i];
+        if (!std::isnan(grad_16_[sample][i])) {
+          pdst[i] += grad_16_[sample][i];
+        }
       }
     }
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // // dstがnanか確認
+    // for (size_t i = 0; i < sz; i++) {
+    //   std::cout << "dst[" << i << "] = " << pdst[i] << std::endl;
+    //   if (std::isnan(pdst[i])) {
+    //     std::exit(0);
+    //   }
+    // }
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
   }
 
   void clear_grads() {
@@ -226,15 +250,16 @@ class edge {
   }
   
   tensor16_t *get_data16() { 
-    for (size_t i = 0; i < data_16_.size(); i++) {
-      if (data_16_[i].size() == 0) {
-        printf("data_16_[%d].size() = 0\n", i);
-      } else {
-        for (size_t j = 0; j < 1; j++) {
-          printf("data_16_[%d][%d] = %f, %p\n", i, j, data_16_[i][j], data_16_[i].data());
-        }
-      }
-    }
+    // for (size_t i = 0; i < data_16_.size(); i++) {
+    //   if (data_16_[i].size() == 0) {
+    //     printf("data_16_[%d].size() = 0\n", i);
+    //   } else {
+    //     for (size_t j = 0; j < 1; j++) {
+    //       // printf("data_16_[%d][%d] = %f, %p\n", i, j, data_16_[i][j], data_16_[i].data());
+    //       std::cout << "data_16_[" << i << "][" << j << "] = " << data_16_[i][j] << ", " << &data_16_[i][j] << std::endl;
+    //     }
+    //   }
+    // }
     return &data_16_; 
   }
 

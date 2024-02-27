@@ -24,6 +24,9 @@ std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
 tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array);
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
 void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half);
+void nan_check(const tiny_dnn::vec16_t &array);
+void nan_check(const tiny_dnn::tensor16_t &array);
+
 
 namespace tiny_dnn {
 
@@ -188,26 +191,117 @@ class softmax_layer : public activation_layer {
 #if HAS_CXX11_THREAD_LOCAL
     thread_local
 #endif
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // // nan check
+    // std::cout << "x nan check" << std::endl;
+    // nan_check(x);
+    // std::cout << "y nan check" << std::endl;
+    // nan_check(y);
+    // std::cout << "dx nan check" << std::endl;
+    // nan_check(dx);
+    // std::cout << "dy nan check" << std::endl;
+    // nan_check(dy);
 
-    const size_t len = dy.size();
-    std::vector<float> dx_test(len, 0.0f); // 中間計算用の高精度ベクター
+    vec_t x_float;
+    one_half_to_vector(x_float, x);
+    vec_t y_float;
+    one_half_to_vector(y_float, y);
+    vec_t dx_float;
+    one_half_to_vector(dx_float, dx);
+    vec_t dy_float;
+    one_half_to_vector(dy_float, dy);
+
+    // nan check
+    // std::cout << "x_float nan check" << std::endl;
+    // for (size_t i = 0; i < x_float.size(); ++i) {
+    //     if(std::isnan(x_float[i])) {
+    //         std::cout << "x_float[" << i << "] is nan" << std::endl;
+    //     } else if(std::isinf(x_float[i])) {
+    //         std::cout << "x_float[" << i << "] is inf" << std::endl;
+    //     }
+    // }
+    // std::cout << "y_float nan check" << std::endl;
+    // for (size_t i = 0; i < y_float.size(); ++i) {
+    //     if(std::isnan(y_float[i])) {
+    //         std::cout << "y_float[" << i << "] is nan" << std::endl;
+    //     } else if(std::isinf(y_float[i])) {
+    //         std::cout << "y_float[" << i << "] is inf" << std::endl;
+    //     }
+    // }
+    // std::cout << "dx_float nan check" << std::endl;
+    // for (size_t i = 0; i < dx_float.size(); ++i) {
+    //     if(std::isnan(dx_float[i])) {
+    //         std::cout << "dx_float[" << i << "] is nan" << std::endl;
+    //     } else if(std::isinf(dx_float[i])) {
+    //         std::cout << "dx_float[" << i << "] is inf" << std::endl;
+    //     }
+    // }
+    // std::cout << "dy_float nan check" << std::endl;
+    // for (size_t i = 0; i < dy_float.size(); ++i) {
+    //     if(std::isnan(dy_float[i])) {
+    //         std::cout << "dy_float[" << i << "] is nan" << std::endl;
+    //     } else if(std::isinf(dy_float[i])) {
+    //         std::cout << "dy_float[" << i << "] is inf" << std::endl;
+    //     }
+    // }
+
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
+
+    const size_t len = dy_float.size();
+    // vec_t dx_test(len, 0.0f); // 中間計算用の高精度ベクター
 
     for (size_t i = 0; i < len; ++i) {
         float sum = 0.0f;
         for (size_t j = 0; j < len; ++j) {
             if (i == j) {
-                sum += static_cast<float>(dy[j]) * static_cast<float>(y[i]) * (1.0f - static_cast<float>(y[i]));
+                sum += dy_float[j] * y_float[i] * (1.0f - y_float[i]);
             } else {
-                sum -= static_cast<float>(dy[j]) * static_cast<float>(y[i]) * static_cast<float>(y[j]);
+                sum -= dy_float[j] * y_float[i] * y_float[j];
             }
         }
-        dx_test[i] = sum; // 直接floatで計算
+        dx_float[i] = sum; // 直接floatで計算
     }
 
+    float min_half_value = std::numeric_limits<half>::min();
+    float max_half_value = std::numeric_limits<half>::max();
+
+    // std::cout << "min_half_value = " << min_half_value << std::endl;
+    // std::cout << "max_half_value = " << max_half_value << std::endl;
+
+    // // check dx_float
+    // for (size_t i = 0; i < len; ++i) {
+    //     if(std::isnan(dx_float[i])) {
+    //         std::cout << "dx_float[" << i << "] is nan" << std::endl;
+    //     }
+    // }
+
     // 結果をhalfに変換
+    // for (size_t i = 0; i < len; ++i) {
+    //     dx[i] = half(dx_float[i]);
+    // }
+
+    // dx = one_vector_to_half16(dx_float);
+
     for (size_t i = 0; i < len; ++i) {
-        dx[i] = static_cast<half>(dx_test[i]);
+        if (dx_float[i] < min_half_value && dx_float[i] > 0.0f) {
+            dx[i] = half(min_half_value * 1.01);
+        } else if (dx_float[i] > -min_half_value && dx_float[i] < 0.0f) {
+            dx[i] = half(-min_half_value * 1.01);
+        } else if (dx_float[i] > max_half_value) {
+            dx[i] = half(max_half_value * 0.99);
+        } else if (dx_float[i] < -max_half_value) {
+            dx[i] = half(-max_half_value * 0.99);
+        } else {
+            dx[i] = half(dx_float[i]);
+        }
     }
+
+    // std::cout << "dx nan check" << std::endl;
+    // nan_check(dx);
+
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
         
 #else
 
