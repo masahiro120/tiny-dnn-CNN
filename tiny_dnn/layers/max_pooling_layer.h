@@ -172,6 +172,8 @@ class max_pooling_layer : public layer {
     bwd_ctx_.setParallelize(layer::parallelize());
     bwd_ctx_.setEngine(layer::engine());
 
+    // std::cout << "max_pooling_layer::back_propagation16" << std::endl;
+
     // launch convolutional kernel
     kernel_back_->compute16(bwd_ctx_);
   }

@@ -26,6 +26,6 @@
 // 要確認
 #define LOSS_HALF 1
 
-#define MARGE_HALF 1
+#define MERGE_HALF 1
 
-#define UPDATE 1
+#define UPDATE 0

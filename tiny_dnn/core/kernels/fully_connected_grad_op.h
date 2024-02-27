@@ -70,7 +70,7 @@ class FullyConnectedGradOp : public core::OpKernel {
 
     const core::backend_t engine = context.engine();
 
-    #if CONV_B_HALF == 0
+    #if FC_B_HALF == 0
     // 入力データをfloatに変換
     tensor_t prev_out_float;
     for (size_t i = 0; i < prev_out.size(); i++) {

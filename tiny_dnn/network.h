@@ -35,7 +35,9 @@ using namespace half_float;
 // #define LOSS_HALF 1
 
 std::vector<std::vector<std::vector<half>>> three_vector_to_half(const std::vector<tiny_dnn::tensor_t>& array);
+std::vector<tiny_dnn::tensor16_t> three_vector_to_half16(const std::vector<tiny_dnn::tensor_t>& array);
 void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<std::vector<std::vector<half>>> array_half);
+void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<tiny_dnn::tensor16_t> array_half);
 std::vector<std::vector<std::vector<half>>> gradient_half(
                                const std::vector<std::vector<std::vector<half>>> &y,
                                const std::vector<std::vector<std::vector<half>>> &t,
@@ -229,12 +231,35 @@ class network {
   void bprop(const std::vector<tensor16_t> &out,
              const std::vector<tensor16_t> &t,
              const std::vector<tensor16_t> &t_cost) {
+#if LOSS_HALF == 1
     std::vector<tensor16_t> delta = gradient<E>(out, t, t_cost);
+#else
 
-    // deltaのサイズ
-    // std::cout << "delta.size() = " << delta.size() << std::endl;
-    // std::cout << "delta[0].size() = " << delta[0].size() << std::endl;
-    // std::cout << "delta[0][0].size() = " << delta[0][0].size() << std::endl;
+    std::vector<tensor_t> out_float;
+    three_half_to_vector(out_float, out);
+    std::vector<tensor_t> t_float;
+    three_half_to_vector(t_float, t);
+    std::vector<tensor_t> t_cost_float;
+    three_half_to_vector(t_cost_float, t_cost);
+
+    std::vector<tensor_t> delta_float = gradient<E>(out_float, t_float, t_cost_float);
+
+    std::vector<tensor16_t> delta = three_vector_to_half16(delta_float);
+
+#endif
+
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
+    // deltaにnanが含まれているかチェック
+    for (size_t i = 0; i < delta.size(); i++) {
+      for (size_t j = 0; j < delta[i].size(); j++) {
+        for (size_t k = 0; k < delta[i][j].size(); k++) {
+          if (std::isnan(delta[i][j][k])) {
+            std::cout << "delta[" << i << "][" << j << "][" << k << "] is nan" << std::endl;
+          }
+        }
+      }
+    }
 
     net_.backward(delta);
   }
@@ -1110,6 +1135,7 @@ class network {
     stop_training_ = false;
     in_batch_.resize(batch_size);
     t_batch_.resize(batch_size);
+    std::cout << std::endl;
     for (int iter = 0; iter < epoch && !stop_training_; iter++) {
       for (size_t i = 0; i < inputs.size() && !stop_training_;
            i += batch_size) {
@@ -1261,9 +1287,47 @@ class network {
     std::vector<tensor_t> t_cost_batch =
       t_cost ? std::vector<tensor_t>(&t_cost[0], &t_cost[0] + batch_size)
              : std::vector<tensor_t>();
+    
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // std::cout << "in_batch_.size() = " << in_batch_.size() << std::endl;
+    // std::cout << "in_batch_[1].size() = " << in_batch_[1].size() << std::endl;
+    // std::cout << "in_batch_[1][0].size() = " << in_batch_[1][0].size() << std::endl;
+    // for (int i = 0; i < 10; i++) {
+    //   std::cout << "in_batch_[1][0][" << i << "] = " << in_batch_[1][0][i] << std::endl;
+    // }
+    
+    #if 1
+    auto forward = fprop(in_batch_);
+    bprop<E>(forward, t_batch_, t_cost_batch);
+    #else
+    #if 0
+    std::vector<tensor16_t> in_batch_half_ = three_vector_to_half16(in_batch_);
+    auto forward_half = fprop(in_batch_half_);
+    std::vector<tensor_t> forward;
+    three_half_to_vector(forward, forward_half);
+    bprop<E>(forward, t_batch_, t_cost_batch);
+    #else
+    auto forward = fprop(in_batch_);
+    std::vector<tensor16_t> forward_half = three_vector_to_half16(forward);
+    std::vector<tensor16_t> t_batch_half = three_vector_to_half16(t_batch_);
+    std::vector<tensor16_t> t_cost_batch_half = three_vector_to_half16(t_cost_batch);
 
-    bprop<E>(fprop(in_batch_), t_batch_, t_cost_batch);
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    bprop<E>(forward_half, t_batch_half, t_cost_batch_half);
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    
+    three_half_to_vector(t_batch_, t_batch_half);
+    three_half_to_vector(t_cost_batch, t_cost_batch_half);
+
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
+    #endif
+    #endif
+    
     net_.update_weights(&optimizer);
+
+    // bprop<E>(fprop(in_batch_), t_batch_, t_cost_batch);
+    // net_.update_weights(&optimizer);
   }
 
   template <typename E, typename Optimizer>
@@ -1281,10 +1345,28 @@ class network {
       t_cost ? std::vector<tensor16_t>(&t_cost[0], &t_cost[0] + batch_size)
              : std::vector<tensor16_t>();
 
-    auto forward = fprop(in_batch_16_);
+    // #if 0
+    auto forward = fprop(in_batch_16_); 
+
+    // forwardがnanを含む場合、fpropの中でnanが発生した場所を特定する
+    for (size_t i = 0; i < forward.size(); i++) {
+      for (size_t j = 0; j < forward[i].size(); j++) {
+        for (size_t k = 0; k < forward[i][j].size(); k++) {
+          if (std::isnan(forward[i][j][k])) {
+            std::cout << "forward[" << i << "][" << j << "][" << k << "] is nan" << std::endl;
+          } 
+        }
+      }
+    }
+    // #else
+    // std::vector<tensor_t> in_batch_test_;
+    // three_half_to_vector(in_batch_test_, in_batch_16_);
+    // std::vector<tensor_t> forward = fprop(in_batch_test_);
+
+    // #endif
+
     bprop<E>(forward, t_batch_16_, t_cost_batch);
     net_.update_weights16(&optimizer);
-
     // bprop<E>(fprop(in_batch_16_), t_batch_16_, t_cost_batch);
     // net_.update_weights(&optimizer);
   }

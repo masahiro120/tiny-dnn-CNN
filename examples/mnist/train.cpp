@@ -21,6 +21,8 @@ using namespace std;
 #include "gray_train_images.cpp"
 #include "gray_train_labels.cpp"
 
+int train16 = 0;
+
 // #include "train_images_one.cpp"
 
 // ;extern std::vector<tiny_dnn::vec_t> train_images_data;
@@ -114,8 +116,8 @@ void half_map() {
     print_short_line();
 
     std::cout << "|"
-              << std::left << std::setw(25) << "MARGE" << "|"
-              << center(((MARGE_HALF == 1) ? "O N" : "OFF"), 14)
+              << std::left << std::setw(25) << "MERGE" << "|"
+              << center(((MERGE_HALF == 1) ? "O N" : "OFF"), 14)
               << "|" << std::endl;
     print_short_line();
 
@@ -269,7 +271,7 @@ static void train_lenet(const std::string &data_dir_path,
   // optimizer.alpha *=
   //   std::min(tiny_dnn::float_t(4),
   //            static_cast<tiny_dnn::float_t>(sqrt(n_minibatch) * learning_rate));
-
+if (train16 == 1) {
   tiny_dnn::progress_display disp_16(train_images.size());
   tiny_dnn::timer t_16;
 
@@ -296,10 +298,10 @@ static void train_lenet(const std::string &data_dir_path,
     // float_t train_accuracy = (float_t)train_results.num_success * 100 / train_results.num_total;
     // std::cout << "train accuracy: " << train_accuracy << "% (" << train_results.num_success << "/" << train_results.num_total << ")" << std::endl;
 
-    // std::cout << "calculate test accuracy" << std::endl;
-    // tiny_dnn::result test_results = nn.test(test_images_half, test_labels);
-    // float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
-    // std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
+    std::cout << "calculate test accuracy" << std::endl;
+    tiny_dnn::result test_results = nn.test(test_images_half, test_labels);
+    float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
+    std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
     // std::cout << "train loss: " << train_loss << " test loss: " << test_loss << std::endl;
     // std::cout << "train accuracy: " << train_accuracy << "% test accuracy: " << test_accuracy << "%" << std::endl;
 
@@ -312,7 +314,7 @@ static void train_lenet(const std::string &data_dir_path,
   
   nn.fit16<tiny_dnn::cross_entropy_multiclass>(optimizer, train_images_half, train_labels, n_minibatch,
                           n_train_epochs, on_enumerate_minibatch_16, on_enumerate_epoch_16);
-
+} else {
   std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 
   tiny_dnn::progress_display disp(train_images.size());
@@ -329,9 +331,9 @@ static void train_lenet(const std::string &data_dir_path,
     // // lossの計算
     // std::cout << "calculate loss..." << std::endl;
     // auto train_loss = this->model.get_loss<tiny_dnn::mse>(train_images, train_labels);
-    std::cout << "calculate test loss" << std::endl;
-    auto test_loss = nn.get_loss<tiny_dnn::cross_entropy_multiclass>(test_images, test_labels);
-    std::cout << "test loss: " << test_loss << std::endl;
+    // std::cout << "calculate test loss" << std::endl;
+    // auto test_loss = nn.get_loss<tiny_dnn::cross_entropy_multiclass>(test_images, test_labels);
+    // std::cout << "test loss: " << test_loss << std::endl;
 
     // accuracyの計算
     // std::cout << "calculate accuracy..." << std::endl;
@@ -341,10 +343,10 @@ static void train_lenet(const std::string &data_dir_path,
     // float_t train_accuracy = (float_t)train_results.num_success * 100 / train_results.num_total;
     // std::cout << "train accuracy: " << train_accuracy << "% (" << train_results.num_success << "/" << train_results.num_total << ")" << std::endl;
 
-    // std::cout << "calculate test accuracy" << std::endl;
-    // tiny_dnn::result test_results = nn.test(test_images, test_labels);
-    // float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
-    // std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
+    std::cout << "calculate test accuracy" << std::endl;
+    tiny_dnn::result test_results = nn.test(test_images, test_labels);
+    float_t test_accuracy = (float_t)test_results.num_success * 100 / test_results.num_total;
+    std::cout << "test accuracy: " << test_accuracy << "% (" << test_results.num_success << "/" << test_results.num_total << ")" << std::endl;
     // std::cout << "train loss: " << train_loss << " test loss: " << test_loss << std::endl;
     // std::cout << "train accuracy: " << train_accuracy << "% test accuracy: " << test_accuracy << "%" << std::endl;
 
@@ -358,7 +360,7 @@ static void train_lenet(const std::string &data_dir_path,
   // training
   nn.fit<tiny_dnn::cross_entropy_multiclass>(optimizer, train_images, train_labels, n_minibatch,
                           n_train_epochs, on_enumerate_minibatch, on_enumerate_epoch);
-
+}
   std::cout << "end training." << std::endl;
 
   // test and show results

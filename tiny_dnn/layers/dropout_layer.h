@@ -21,10 +21,16 @@
 // #define DROP_OUT_B_HALF 1
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
+tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
+tiny_dnn::tensor16_t two_vector_to_half16(const tiny_dnn::tensor_t& array);
 std::vector<std::vector<std::vector<half>>> three_vector_to_half(const std::vector<tiny_dnn::tensor_t>& array);
+std::vector<tiny_dnn::tensor16_t> three_vector_to_half16(const std::vector<tiny_dnn::tensor_t>& array);
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
+void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half);
+void two_half_to_vector(tiny_dnn::tensor_t& array, tiny_dnn::tensor16_t array_half);
 void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<std::vector<std::vector<half>>> array_half);
+void three_half_to_vector(std::vector<tiny_dnn::tensor_t>& array, std::vector<tiny_dnn::tensor16_t> array_half);
 bool bernoulli_half(half p);
 
 namespace tiny_dnn {
@@ -150,6 +156,7 @@ class dropout_layer : public layer {
                           const std::vector<tensor16_t *> &out_data,
                           std::vector<tensor16_t *> &out_grad,
                           std::vector<tensor16_t *> &in_grad) override {
+#if DROP_OUT_B_HALF == 1
     tensor16_t &prev_delta       = *in_grad[0];
     const tensor16_t &curr_delta = *out_grad[0];
 
@@ -164,6 +171,32 @@ class dropout_layer : public layer {
         prev_delta[sample][i] = mask_[sample][i] * curr_delta[sample][i];
       }
     });
+#else
+
+    tensor16_t &prev_delta       = *in_grad[0];
+    const tensor16_t &curr_delta = *out_grad[0];
+
+    tensor_t prev_delta_float;
+    two_half_to_vector(prev_delta_float, prev_delta);
+
+    tensor_t curr_delta_float;
+    two_half_to_vector(curr_delta_float, curr_delta);
+
+    CNN_UNREFERENCED_PARAMETER(in_data);
+    CNN_UNREFERENCED_PARAMETER(out_data);
+
+    for_i(prev_delta_float.size(), [&](size_t sample) {
+      // assert(prev_delta[sample].size() == curr_delta[sample].size());
+      // assert(mask_[sample].size() == prev_delta[sample].size());
+      size_t sz = prev_delta_float[sample].size();
+      for (size_t i = 0; i < sz; ++i) {
+        prev_delta_float[sample][i] = mask_[sample][i] * curr_delta_float[sample][i];
+      }
+    });
+
+    prev_delta = two_vector_to_half16(prev_delta_float);
+
+#endif
   }
 
   void forward_propagation(const std::vector<tensor_t *> &in_data,
@@ -291,6 +324,68 @@ class dropout_layer : public layer {
 
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
                                std::vector<tensor16_t *> &out_data) override {
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cout << "DropoutLayer::forward_propagation16" << std::endl;
+
+    std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    std::vector<tensor_t> in_data_test(in_data.size());
+    std::vector<tensor_t> out_data_test(out_data.size());
+
+    for (size_t i = 0; i < in_data_val.size(); ++i) {
+      in_data_test[i].resize(in_data_val[i].size());
+      for (size_t j = 0; j < in_data_val[i].size(); ++j) {
+        in_data_test[i][j].resize(in_data_val[i][j].size());
+        for (size_t k = 0; k < in_data_val[i][j].size(); ++k) {
+          in_data_test[i][j][k] = (float)in_data_val[i][j][k];
+        }
+      }
+    }
+
+    for (size_t i = 0; i < out_data_val.size(); ++i) {
+      out_data_test[i].resize(out_data_val[i].size());
+      for (size_t j = 0; j < out_data_val[i].size(); ++j) {
+        out_data_test[i][j].resize(out_data_val[i][j].size());
+        for (size_t k = 0; k < out_data_val[i][j].size(); ++k) {
+          out_data_test[i][j][k] = (float)out_data_val[i][j][k];
+        }
+      }
+    }
+    
+    // nanが含まれているかどうかを確認します。
+    for (size_t i = 0; i < in_data_test.size(); i++) {
+      for (size_t j = 0; j < in_data_test[i].size(); j++) {
+        for (size_t k = 0; k < in_data_test[i][j].size(); k++) {
+          if (std::isnan(in_data_test[i][j][k])) {
+            printf("in_data_test[%d][%d][%d] = %f\n", i, j, k, (float)in_data_test[i][j][k]);
+            std::exit(0);
+          }
+        }
+      }
+    }
+
+    for (size_t i = 0; i < out_data_test.size(); i++) {
+      for (size_t j = 0; j < out_data_test[i].size(); j++) {
+        for (size_t k = 0; k < out_data_test[i][j].size(); k++) {
+          if (std::isnan(out_data_test[i][j][k])) {
+            printf("out_data_test[%d][%d][%d] = %f\n", i, j, k, (float)out_data_test[i][j][k]);
+            std::exit(0);
+          }
+        }
+      }
+    }
+
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+#if DROP_OUT_F_HALF == 1
     tiny_dnn::set_random_seed(123);
 
     const tensor16_t &in = *in_data[0];
@@ -319,7 +414,55 @@ class dropout_layer : public layer {
           out_vec[i] = in_vec[i];
       }
     });
+#else
 
+    std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    std::vector<tiny_dnn::tensor_t> in_data_float(in_data.size());
+    std::vector<tiny_dnn::tensor_t> out_data_float(out_data.size());
+
+    three_half_to_vector(in_data_float, in_data_val);
+    three_half_to_vector(out_data_float, out_data_val);
+
+    const size_t sample_count = in_data_float[0].size();
+
+    if (mask_.size() < sample_count) {
+      mask_.resize(sample_count, mask_[0]);
+    }
+
+    for_i(sample_count, [&](size_t sample) {
+      std::vector<uint8_t> &mask = mask_[sample];
+
+      const vec_t &in_vec = in_data_float[0][sample];
+      vec_t &out_vec      = out_data_float[0][sample];
+
+      if (phase_ == net_phase::train) {
+        for (size_t i = 0; i < in_vec.size(); i++)
+          mask[i]     = bernoulli(dropout_rate_);
+
+        for (size_t i = 0; i < in_vec.size(); i++)
+          out_vec[i]  = mask[i] * scale_ * in_vec[i];
+      } else {
+        for (size_t i = 0, end = in_vec.size(); i < end; i++)
+          out_vec[i] = in_vec[i];
+      }
+    });
+
+    out_data_val = three_vector_to_half16(out_data_float);
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        *(out_data[i]) = out_data_val[i]; // ポインタのデリファレンス
+    }
+#endif
   }
 
   /**

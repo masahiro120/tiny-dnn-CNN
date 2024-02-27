@@ -32,7 +32,7 @@
 
 using namespace half_float;
 
-// #define MARGE_HALF 0
+// #define MERGE_HALF 0
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
 std::vector<std::vector<half>> two_vector_to_half(const tiny_dnn::tensor_t& array);
@@ -98,10 +98,15 @@ class edge {
       grad_({vec_t(shape.size())}),
       data_16_({vec16_t(shape.size())}),
       grad_16_({vec16_t(shape.size())}),
-      prev_(prev) {}
+      prev_(prev) {
+        // for (size_t i = 0; i < shape.size(); i++) {
+        //   printf("data_[%d] = %f\n", i, data_[i]);
+        //   printf("data_16_[%d] = %f\n", i, data_16_[i]);
+        // }
+      }
 
   void merge_grads(vec_t *dst) {
-#if MARGE_HALF == 0
+#if MERGE_HALF == 0
 #if 0
     assert(!grad_.empty());
     const auto &grad_head = grad_[0];
@@ -207,9 +212,31 @@ class edge {
     }
   }
 
-  tensor_t *get_data() { return &data_; }
+  tensor_t *get_data() { 
+    for (size_t i = 0; i < data_.size(); i++) {
+      if (data_[i].size() == 0) {
+        printf("data_[%d].size() = 0\n", i);
+      } else {
+        for (size_t j = 0; j < 1; j++) {
+          printf("data_[%d][%d] = %f, %p\n", i, j, data_[i][j], data_[i].data());
+        }
+      }
+    }
+    return &data_; 
+  }
   
-  tensor16_t *get_data16() { return &data_16_; }
+  tensor16_t *get_data16() { 
+    for (size_t i = 0; i < data_16_.size(); i++) {
+      if (data_16_[i].size() == 0) {
+        printf("data_16_[%d].size() = 0\n", i);
+      } else {
+        for (size_t j = 0; j < 1; j++) {
+          printf("data_16_[%d][%d] = %f, %p\n", i, j, data_16_[i][j], data_16_[i].data());
+        }
+      }
+    }
+    return &data_16_; 
+  }
 
   //自分で作成
   // void *set_data(tensor_t w) {data_ = w;}
@@ -219,9 +246,23 @@ class edge {
     data_ = v_2d;
   }
 
-  const tensor_t *get_data() const { return &data_; }
+  const tensor_t *get_data() const { 
+    for (size_t i = 0; i < data_.size(); i++) {
+      for (size_t j = 0; j < 1; j++) {
+        printf("data_[%d][%d] = %f\n", i, j, data_[i][j]);
+      }
+    }
+    return &data_; 
+  }
   
-  const tensor16_t *get_data16() const { return &data_16_; }
+  const tensor16_t *get_data16() const { 
+    for (size_t i = 0; i < data_16_.size(); i++) {
+      for (size_t j = 0; j < 1; j++) {
+        printf("data_16_[%d][%d] = %f, %p\n", i, j, data_16_[i][j], &data_16_[i][j]);
+      }
+    }
+    return &data_16_; 
+  }
 
   tensor_t *get_gradient() { return &grad_; }
 

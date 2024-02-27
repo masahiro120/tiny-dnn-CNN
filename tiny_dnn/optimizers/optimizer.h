@@ -18,7 +18,9 @@
 using half_float::half;
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
+tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array);
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
+void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half);
 
 namespace tiny_dnn {
 
@@ -44,6 +46,7 @@ template <int N>
 struct stateful_optimizer : public optimizer {
   void reset() override {
     for (auto &e : E_) e.clear();
+    for (auto &e : E_16_) e.clear();
   }
 
  protected:
@@ -271,6 +274,7 @@ struct adam : public stateful_optimizer<2> {
   }
 
   void update16(const vec16_t &dW, vec16_t &W, bool parallelize) {
+  #if UPDATE == 1
     vec16_t &mt = get<0>(W);
     vec16_t &vt = get<1>(W);
 
@@ -283,8 +287,41 @@ struct adam : public stateful_optimizer<2> {
               std::sqrt((vt[i] / (half(1) - b2_t_16)) + eps);
     });
 
+    b1_t_16 *= b1_16;
+    b2_t_16 *= b2_16;
+  #else
+  
+    vec16_t &mt = get<0>(W);
+    vec16_t &vt = get<1>(W);
+
+    vec_t mt_val(mt.size());
+    one_half_to_vector(mt_val, mt);
+    vec_t vt_val(vt.size());
+    one_half_to_vector(vt_val, vt);
+
+    vec_t dW_val(dW.size());
+    one_half_to_vector(dW_val, dW);
+    vec_t W_val(W.size());
+    one_half_to_vector(W_val, W);
+
+    for_i(parallelize, W.size(), [&](size_t i) {
+      mt_val[i] = b1 * mt_val[i] + (float_t(1) - b1) * dW_val[i];
+      vt_val[i] = b2 * vt_val[i] + (float_t(1) - b2) * dW_val[i] * dW_val[i];
+
+      // L2 norm based update rule
+      W_val[i] -= alpha * (mt_val[i] / (float_t(1) - b1_t)) /
+              std::sqrt((vt_val[i] / (float_t(1) - b2_t)) + eps);
+    });
+
+    mt = one_vector_to_half16(mt_val);
+    vt = one_vector_to_half16(vt_val);
+    // dW = one_vector_to_half16(dW_val);
+    W = one_vector_to_half16(W_val);
+
     b1_t *= b1;
     b2_t *= b2;
+
+  #endif
   }
 
   float_t alpha;  // learning rate

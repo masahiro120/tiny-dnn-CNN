@@ -80,6 +80,68 @@ class fully_connected_layer : public layer {
 
   void forward_propagation16(const std::vector<tensor16_t *> &in_data,
                                std::vector<tensor16_t *> &out_data) override {
+
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cout << "FullyConnectedLayer::forward_propagation16" << std::endl;
+
+    std::vector<tiny_dnn::tensor16_t> in_data_val(in_data.size());
+    std::vector<tiny_dnn::tensor16_t> out_data_val(out_data.size());
+
+    for (size_t i = 0; i < in_data.size(); ++i) {
+        in_data_val[i] = *(in_data[i]); // ポインタのデリファレンス
+    }
+
+    for (size_t i = 0; i < out_data.size(); ++i) {
+        out_data_val[i] = *(out_data[i]); // ポインタのデリファレンス
+    }
+
+    std::vector<tensor_t> in_data_test(in_data.size());
+    std::vector<tensor_t> out_data_test(out_data.size());
+
+    for (size_t i = 0; i < in_data_val.size(); ++i) {
+      in_data_test[i].resize(in_data_val[i].size());
+      for (size_t j = 0; j < in_data_val[i].size(); ++j) {
+        in_data_test[i][j].resize(in_data_val[i][j].size());
+        for (size_t k = 0; k < in_data_val[i][j].size(); ++k) {
+          in_data_test[i][j][k] = (float)in_data_val[i][j][k];
+        }
+      }
+    }
+
+    for (size_t i = 0; i < out_data_val.size(); ++i) {
+      out_data_test[i].resize(out_data_val[i].size());
+      for (size_t j = 0; j < out_data_val[i].size(); ++j) {
+        out_data_test[i][j].resize(out_data_val[i][j].size());
+        for (size_t k = 0; k < out_data_val[i][j].size(); ++k) {
+          out_data_test[i][j][k] = (float)out_data_val[i][j][k];
+        }
+      }
+    }
+    
+    // nanが含まれているかどうかを確認します。
+    for (size_t i = 0; i < in_data_test.size(); i++) {
+      for (size_t j = 0; j < in_data_test[i].size(); j++) {
+        for (size_t k = 0; k < in_data_test[i][j].size(); k++) {
+          if (std::isnan(in_data_test[i][j][k])) {
+            printf("in_data_test[%d][%d][%d] = %f\n", i, j, k, (float)in_data_test[i][j][k]);
+            std::exit(0);
+          }
+        }
+      }
+    }
+
+    for (size_t i = 0; i < out_data_test.size(); i++) {
+      for (size_t j = 0; j < out_data_test[i].size(); j++) {
+        for (size_t k = 0; k < out_data_test[i][j].size(); k++) {
+          if (std::isnan(out_data_test[i][j][k])) {
+            printf("out_data_test[%d][%d][%d] = %f\n", i, j, k, (float)out_data_test[i][j][k]);
+            std::exit(0);
+          }
+        }
+      }
+    }
+
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     // forward fully connected op context
     fwd_ctx_.set_in_out(in_data, out_data);
     fwd_ctx_.setParallelize(layer::parallelize());

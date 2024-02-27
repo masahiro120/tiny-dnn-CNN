@@ -59,7 +59,7 @@ class MaxPoolGradOp : public core::OpKernel {
 
     const core::backend_t engine = context.engine();
 
-    #if MAXPOOL_F_HALF == 0
+    #if MAX_POOLING_B_HALF == 0
     // 入力データをfloatに変換
     tensor_t prev_delta_float;
     for (size_t i = 0; i < prev_delta.size(); i++) {
@@ -96,6 +96,7 @@ class MaxPoolGradOp : public core::OpKernel {
 
     #else
 
+    // std::cout << "maxpool_grad_op_internal" << std::endl;
     kernels::maxpool_grad_op_internal(prev_delta, curr_delta,
                                       params.out2inmax, params.in2out,
                                       context.parallelize());

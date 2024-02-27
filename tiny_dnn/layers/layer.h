@@ -34,6 +34,8 @@
 #include "../util/image.h"
 #endif
 
+extern int train16;
+
 namespace tiny_dnn {
 
 /**
@@ -263,6 +265,7 @@ class layer : public node {
       assert(n < cnt);
       const auto &src_data = data[n++];
       size_t sz            = src_data.size();
+      std::cout << "sz = " << sz << std::endl;
       dst_data.resize(sz);
 
       CNN_UNREFERENCED_PARAMETER(in_size);
@@ -286,6 +289,7 @@ class layer : public node {
       assert(n < cnt);
       const auto &src_data = data[n++];
       size_t sz            = src_data.size();
+      std::cout << "sz = " << sz << std::endl;
       dst_data.resize(sz);
 
       CNN_UNREFERENCED_PARAMETER(in_size);
@@ -533,6 +537,7 @@ class layer : public node {
                std::vector<const tensor_t *> &out) {  // for test
     // allocate data in the computational graph without
     // resetting the weights.
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
     setup(false);
 
     std::vector<std::vector<const vec_t *>> input2;
@@ -600,13 +605,52 @@ class layer : public node {
     // Internally ith_in_node() will create a connection/edge in the
     // computational graph and will allocate memory in case that it's not
     // done yet.
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
+    // if (fwd_in_data_.size() != 1) {
+    //   std::cout << "fwd_in_data_[1][0][0].size() = " << fwd_in_data_[1][0][0].size() << std::endl;
+    //   for (size_t i = 0; i < 10; i++) {
+    //     std::cout << "fwd_in_data_[1][0][0][" << i << "] = " << fwd_in_data_[1][0][0][i] << std::endl;
+    //   }
+    // }
+
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
+    std::cout << "in_channels_ = " << in_channels_ << std::endl;
+
     for (size_t i = 0; i < in_channels_; i++) {
       fwd_in_data_[i] = ith_in_node(i)->get_data();
     }
 
+    // fwd_in_data_のサイズを確認
+    std::cout << "fwd_in_data_.size() = " << fwd_in_data_.size() << std::endl;
+    
+    for (size_t i = 0; i < fwd_in_data_.size(); i++) {
+      std::cout << "fwd_in_data_[" << i << "].size() = " << fwd_in_data_[i]->size() << std::endl;
+    }
+
+    
+    
     // resize outs and stuff to have room for every input sample in
     // the batch
+    if (fwd_in_data_.size() != 1) {
+      std::cout << "fwd_in_data_[1][0][0].size() = " << fwd_in_data_[1][0][0].size() << std::endl;
+      for (size_t i = 0; i < 10; i++) {
+        std::cout << "fwd_in_data_[1][0][0][" << i << "] = " << fwd_in_data_[1][0][0][i] << std::endl;
+      }
+    }
+
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    
     set_sample_count(fwd_in_data_[0]->size());
+    // if (fwd_in_data_.size() != 1) {
+    //   std::cout << "fwd_in_data_[1][0][0].size() = " << fwd_in_data_[1][0][0].size() << std::endl;
+    //   for (size_t i = 0; i < 10; i++) {
+    //     std::cout << "fwd_in_data_[1][0][0][" << i << "] = " << fwd_in_data_[1][0][0][i] << std::endl;
+    //   }
+    // }
+
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 
     // Internally ith_out_node() will create a connection/edge to the
     // computational graph and will allocate memory in case that it's not
@@ -630,6 +674,9 @@ class layer : public node {
     // Internally ith_in_node() will create a connection/edge in the
     // computational graph and will allocate memory in case that it's not
     // done yet.
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+
+    std::cout << "in_channels_ = " << in_channels_ << std::endl;
     for (size_t i = 0; i < in_channels_; i++) {
       fwd_in_data_16_[i] = ith_in_node(i)->get_data16();
     }
@@ -637,6 +684,13 @@ class layer : public node {
     // resize outs and stuff to have room for every input sample in
     // the batch
     set_sample_count16(fwd_in_data_16_[0]->size());
+    if (fwd_in_data_16_.size() != 1) {
+      std::cout << "fwd_in_data_16_[1][0][0].size() = " << fwd_in_data_16_[1][0][0].size() << std::endl;
+      for (size_t i = 0; i < 10; i++) {
+        std::cout << "fwd_in_data_16_[1][0][0][" << i << "] = " << fwd_in_data_16_[1][0][0][i] << std::endl;
+      }
+    }
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
 
     // Internally ith_out_node() will create a connection/edge to the
     // computational graph and will allocate memory in case that it's not
@@ -693,7 +747,26 @@ class layer : public node {
     // std::cout << "bwd_in_grad_16_.size() = " << bwd_in_grad_16_.size() << std::endl;
     // std::cout << "bwd_in_grad_16_[0].size() = " << bwd_in_grad_16_[0]->size() << std::endl;
 
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    // bwd_out_grad_16_のサイズを確認
+    // std::cout << "bwd_out_data_16_.size() = " << bwd_out_data_16_.size() << std::endl;
+    // if (bwd_out_data_16_.size() != 0) {
+    //   std::cout << "bwd_out_data_16_[0].size() = " << bwd_out_data_16_[0]->size() << std::endl;
+    //   if (bwd_out_data_16_[0]->size() != 0) {
+    //     std::cout << "bwd_out_data_16_[0][0].size() = " << bwd_out_data_16_[0][0].size() << std::endl;
+    //   }
+    // }
+
+    // std::cout << "bwd_out_grad_16_.size() = " << bwd_out_grad_16_.size() << std::endl;
+    // if (bwd_out_grad_16_.size() != 0) {
+    //   std::cout << "bwd_out_grad_16_[0].size() = " << bwd_out_grad_16_[0]->size() << std::endl;
+    //   if (bwd_out_grad_16_[0]->size() != 0) {
+    //     std::cout << "bwd_out_grad_16_[0][0].size() = " << bwd_out_grad_16_[0][0].size() << std::endl;
+    //   }
+    // }
+
     back_propagation16(bwd_in_data_16_, bwd_out_data_16_, bwd_out_grad_16_, bwd_in_grad_16_);
+    // std::cout << __FILE__ << ":" << __LINE__ << std::endl;
   }
 
   /* @brief Allocates data in the computational graph and reset weights if
@@ -730,8 +803,13 @@ class layer : public node {
 
     // reset the weights if necessary, or in case that the data is
     // still not initialized.
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cout << "reset_weight = " << reset_weight << std::endl;
+    std::cout << "initialized = " << initialized_ << std::endl;
+    std::cout << "reset_weight || !initialized_ = " << (reset_weight || !initialized_) << std::endl;
     if (reset_weight || !initialized_) {
       init_weight();
+      // init_weight16();
     }
   }
 
@@ -762,6 +840,10 @@ class layer : public node {
 
     // reset the weights if necessary, or in case that the data is
     // still not initialized.
+    std::cout << __FILE__ << ":" << __LINE__ << std::endl;
+    std::cout << "reset_weight = " << reset_weight << std::endl;
+    std::cout << "initialized = " << initialized_ << std::endl;
+    std::cout << "reset_weight || !initialized_ = " << (reset_weight || !initialized_) << std::endl;
     if (reset_weight || !initialized_) {
       init_weight16();
     }
@@ -792,16 +874,29 @@ class layer : public node {
     for (size_t i = 0; i < in_channels_; i++) {
       switch (in_type_[i]) {
         // fill vectors of weight type
-        case vector_type::weight:
+        case vector_type::weight: {
           weight_init_->fill(get_weight_data(i), fan_in_size(i),
                              fan_out_size(i));
+          printf("get_weight_data(%d).size() = %d\n", i, get_weight_data(i)->size());
+          // printf("get_weight_data(%d)[0] = %f\n", i, (*get_weight_data(i))[0]);
+          vec_t* weight_data = get_weight_data(i);
+          printf("get_weight_data(%zu)[0] = %f\n", i, (*weight_data)[0]);
           break;
+        }
         // fill vector of bias type
-        case vector_type::bias:
+        case vector_type::bias: {
           bias_init_->fill(get_weight_data(i), fan_in_size(i), fan_out_size(i));
+          // printf("get_weight_data(%d)[0] = %f\n", i, get_weight_data(i)[0]);
+          vec_t* weight_data = get_weight_data(i);
+          printf("get_weight_data(%zu)[0] = %f\n", i, (*weight_data)[0]);
           break;
+        }
         default: break;
       }
+    }
+
+    for (size_t i = 0; i < in_channels_; i++) {
+      get_weight_data(i);
     }
     // in case we succeed with data initialization, we mark the
     // layer/node as initialized.
@@ -811,6 +906,7 @@ class layer : public node {
   void init_weight16() {
     // layer/node is not trainable, do nothing and mark the layer/node
     // as initialized.
+    std::cout << "trainable_ = " << trainable_ << std::endl;
     if (!trainable_) {
       initialized_ = true;
       return;
@@ -822,19 +918,30 @@ class layer : public node {
     // return the number of incoming/outcoming connections for each
     // input/output unit.
     for (size_t i = 0; i < in_channels_; i++) {
+      std::cout << "in_type_[i] = " << in_type_[i] << std::endl;
       switch (in_type_[i]) {
         // fill vectors of weight type
-        case vector_type::weight:
+        case vector_type::weight: {
           weight_init_->fill16(get_weight_data16(i), fan_in_size(i),
                              fan_out_size(i));
+          printf("get_weight_data16(%d).size() = %d\n", i, get_weight_data16(i)->size());
+          // printf("get_weight_data(%d)[0] = %f\n", i, (*get_weight_data(i))[0]);
+          vec16_t* weight_data16 = get_weight_data16(i);
+          printf("get_weight_data16(%zu)[0] = %f\n", i, (*weight_data16)[0]);
           break;
+        }
         // fill vector of bias type
-        case vector_type::bias:
+        case vector_type::bias: {
           bias_init_->fill16(get_weight_data16(i), fan_in_size(i), fan_out_size(i));
+          // printf("get_weight_data(%d)[0] = %f\n", i, get_weight_data(i)[0]);
+          vec16_t* weight_data16 = get_weight_data16(i);
+          printf("get_weight_data16(%zu)[0] = %f\n", i, (*weight_data16)[0]);
           break;
+        }
         default: break;
       }
     }
+
     // in case we succeed with data initialization, we mark the
     // layer/node as initialized.
     initialized_ = true;
@@ -1119,7 +1226,11 @@ inline void connect(layer *head,
   auto out_shape = head->out_shape()[head_index];
   auto in_shape  = tail->in_shape()[tail_index];
 
-  head->setup(false);
+  if (train16 == 0) {
+    head->setup(false);
+  } else {
+    head->setup16(false);
+  }
 
   // todo (karandesai) enable shape inferring for all layers
   // currently only possible for activation layers.

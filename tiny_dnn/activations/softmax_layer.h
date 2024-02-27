@@ -21,7 +21,9 @@
 using namespace half_float;
 
 std::vector<half> one_vector_to_half(const tiny_dnn::vec_t& array);
+tiny_dnn::vec16_t one_vector_to_half16(const tiny_dnn::vec_t& array);
 void one_half_to_vector(tiny_dnn::vec_t& array, std::vector<half> array_half);
+void one_half_to_vector(tiny_dnn::vec_t& array, tiny_dnn::vec16_t array_half);
 
 namespace tiny_dnn {
 
@@ -61,6 +63,7 @@ class softmax_layer : public activation_layer {
   }
 
   void forward_activation16(const vec16_t &x, vec16_t &y) override {
+#if SOFTMAX_F_HALF == 1
 
     const half alpha = *std::max_element(x.begin(), x.end());
     half denominator(0);
@@ -71,6 +74,27 @@ class softmax_layer : public activation_layer {
     for (size_t j = 0; j < x.size(); j++) {
       y[j] /= denominator;
     }
+
+#else
+
+    vec_t x_float;
+    one_half_to_vector(x_float, x);
+    vec_t y_float;
+    one_half_to_vector(y_float, y);
+
+    const float_t alpha = *std::max_element(x_float.begin(), x_float.end());
+    float_t denominator(0);
+    for (size_t j = 0; j < x.size(); j++) {
+      y_float[j] = std::exp(x_float[j] - alpha);
+      denominator += y_float[j];
+    }
+    for (size_t j = 0; j < x.size(); j++) {
+      y_float[j] /= denominator;
+    }
+
+    y = one_vector_to_half16(y_float);
+
+#endif
   }
 
   void backward_activation(const vec_t &x,
@@ -160,6 +184,7 @@ class softmax_layer : public activation_layer {
                              const vec16_t &y,
                              vec16_t &dx,
                              const vec16_t &dy) override {
+#if SOFTMAX_B_HALF == 1
 #if HAS_CXX11_THREAD_LOCAL
     thread_local
 #endif
@@ -184,6 +209,44 @@ class softmax_layer : public activation_layer {
         dx[i] = static_cast<half>(dx_test[i]);
     }
         
+#else
+
+#if HAS_CXX11_THREAD_LOCAL
+    thread_local
+#endif
+
+    vec_t x_float;
+    one_half_to_vector(x_float, x);
+    vec_t y_float;
+    one_half_to_vector(y_float, y);
+    vec_t dx_float;
+    one_half_to_vector(dx_float, dx);
+    vec_t dy_float;
+    one_half_to_vector(dy_float, dy);
+
+    const size_t len = dy.size();
+    std::vector<float> dx_test(len, 0.0f); // 中間計算用の高精度ベクター
+
+    for (size_t i = 0; i < len; ++i) {
+        float sum = 0.0f;
+        for (size_t j = 0; j < len; ++j) {
+            if (i == j) {
+                sum += dy_float[j] * y_float[i] * (1.0f - y_float[i]);
+            } else {
+                sum -= dy_float[j] * y_float[i] * y_float[j];
+            }
+        }
+        dx_test[i] = sum; // 直接floatで計算
+    }
+
+    // 結果をhalfに変換
+    for (size_t i = 0; i < len; ++i) {
+        dx_float[i] = dx_test[i];
+    }
+
+    dx = one_vector_to_half16(dx_float);
+
+#endif
   }
 
   std::pair<float_t, float_t> scale() const override {

@@ -223,6 +223,22 @@ inline void conv2d_op_internal(const tensor_t &in_data,
   std::vector<half> bias_half = one_vector_to_half(bias);
   std::vector<std::vector<half>> out_data_half = two_vector_to_half(out_data);
 
+  // for (size_t i = 0; i < in_data_half.size(); i++) {
+  //   for (size_t j = 0; j < 10; j++) {
+  //     std::cout << "in_data_half[" << i << "][" << j << "] = " << in_data_half[i][j] << std::endl;
+  //   }
+  // }
+
+  // for (size_t i = 0; i < 10; i++) {
+  //   std::cout << "W_half[" << i << "] = " << W_half[i] << std::endl;
+  // }
+
+  // for (size_t i = 0; i < 10; i++) {
+  //   std::cout << "bias_half[" << i << "] = " << bias_half[i] << std::endl;
+  // }
+
+  // std::exit(0);
+
   for_(parallelize, 0u, in_data_half.size(),
        [&](const blocked_range &r) {
          size_t out_area    = params.out.area();
@@ -293,6 +309,20 @@ inline void conv2d_op_internal(const tensor16_t &in_data,
                                tensor16_t &out_data,
                                const core::conv_params &params,
                                const bool parallelize) {
+  // for (size_t i = 0; i < in_data.size(); i++) {
+  //   for (size_t j = 0; j < 10; j++) {
+  //     std::cout << "in_data[" << i << "][" << j << "] = " << in_data[i][j] << std::endl;
+  //   }
+  // }
+
+  // for (size_t i = 0; i < 10; i++) {
+  //   std::cout << "W[" << i << "] = " << W[i] << std::endl;
+  // }
+
+  // for (size_t i = 0; i < 10; i++) {
+  //   std::cout << "bias[" << i << "] = " << bias[i] << std::endl;
+  // }
+  // std::exit(0);
 #if CONV_F_HALF == 1
   for_(parallelize, 0u, in_data.size(),
        [&](const blocked_range &r) {
@@ -433,7 +463,7 @@ void conv2d_op_internal(const tensor_t &prev_out,
                         tensor_t &prev_delta,
                         const core::conv_params &params,
                         const bool parallelize) {
-  // printf("conv backward\n");
+  printf("conv backward\n");
   typedef typename vec_t::value_type float_t;
 
 #if CONV_B_HALF == 0
@@ -846,6 +876,7 @@ void conv2d_op_internal(const tensor_t &prev_out,
   two_half_to_vector(db, db_half);
 
 #endif
+  printf("conv backward end\n");
 }
 
 template <typename tensor16_t, typename vec16_t>

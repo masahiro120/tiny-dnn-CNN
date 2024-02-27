@@ -34,6 +34,7 @@ inline void maxpool_op_internal(const tensor_t &in_data,
                                 std::vector<std::vector<size_t>> &max_idx,
                                 const std::vector<std::vector<size_t>> &out2in,
                                 const bool layer_parallelize) {
+  printf("maxpool_op_internal\n");
 #if MAX_POOLING_F_HALF == 0
 
   for_i(layer_parallelize, in_data.size(), [&](size_t sample) {
@@ -86,6 +87,7 @@ inline void maxpool_op_internal(const tensor_t &in_data,
   two_half_to_vector(max_idx, max_idx_half);
 
 #endif
+  printf("maxpool_op_internal end\n");
 }
 
 inline void maxpool_op_internal(const tensor16_t &in_data,
@@ -148,6 +150,7 @@ inline void maxpool_grad_op_internal(tensor_t &prev_delta,
                                      std::vector<std::vector<size_t>> &max_idx,
                                      const std::vector<size_t> &in2out,
                                      const bool layer_parallelize) {
+  // printf("maxpool_grad_op_internal\n");
 #if MAX_POOLING_B_HALF == 0
 
   for_i(layer_parallelize, prev_delta.size(), [&](size_t sample) {
@@ -181,6 +184,7 @@ inline void maxpool_grad_op_internal(tensor_t &prev_delta,
   two_half_to_vector(prev_delta, prev_delta_half);
 
 #endif
+  // printf("maxpool_grad_op_internal end\n");
 }
 
 
@@ -189,6 +193,7 @@ inline void maxpool_grad_op_internal(tensor16_t &prev_delta,
                                      std::vector<std::vector<size_t>> &max_idx,
                                      const std::vector<size_t> &in2out,
                                      const bool layer_parallelize) {
+  // printf("maxpool_grad_op_internal16\n");
 #if MAX_POOLING_B_HALF == 1
   for_i(layer_parallelize, prev_delta.size(), [&](size_t sample) {
     vec16_t &prev                    = prev_delta[sample];
@@ -219,6 +224,7 @@ inline void maxpool_grad_op_internal(tensor16_t &prev_delta,
 
   prev_delta = two_vector_to_half16(prev_delta_float);
 #endif
+  // printf("maxpool_grad_op_internal16 end\n");
 }
 
 }  // namespace kernels

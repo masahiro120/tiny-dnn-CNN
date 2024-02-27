@@ -75,7 +75,7 @@ class MaxPoolOp : public core::OpKernel {
 
     const core::backend_t engine = context.engine();
 
-    #if MAXPOOL_F_HALF == 0
+    #if MAX_POOLING_F_HALF == 0
     // 入力データをfloatに変換
     tensor_t in_data_float;
     for (size_t i = 0; i < in_data.size(); i++) {
